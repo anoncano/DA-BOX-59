@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>DaBox General Panel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen p-6 flex flex-col items-center justify-center">
+  <button id="toggleBtn" class="w-[90vw] h-[90vh] text-4xl font-bold rounded bg-red-600">LOCKED</button>
+  <div class="mt-6 flex gap-4">
+    <button onclick="logout()" class="bg-gray-700 px-4 py-2 rounded">Logout</button>
+    <button onclick="alert('Account deletion coming soon')" class="bg-gray-700 px-4 py-2 rounded">Delete</button>
+    <button id="copyBtn" class="hidden bg-gray-700 px-4 py-2 rounded">Copy Token</button>
+  </div>
+
+  <script type="module" src="auth.js"></script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>DaBox Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="favicon.ico" />
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-6">
+  <div id="authContainer" class="w-full max-w-sm bg-gray-800 p-6 rounded shadow space-y-4">
+    <h2 class="text-xl font-bold text-center">Welcome to DaBox</h2>
+    <input id="email" type="email" placeholder="Email" class="w-full p-2 bg-gray-700 rounded border border-gray-600" />
+    <input id="password" type="password" placeholder="Password" class="w-full p-2 bg-gray-700 rounded border border-gray-600" />
+    <button onclick="login()" class="w-full bg-blue-500 hover:bg-blue-600 p-2 rounded">Login</button>
+    <p id="msg" class="text-sm text-red-400 text-center"></p>
+  </div>
+
+  <script type="module" src="auth.js"></script>
+</body>
+</html>
