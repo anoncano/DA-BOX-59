@@ -27,9 +27,10 @@ A minimal Firebase-based authentication demo with admin and general panels.
 
 The admin panel lets you adjust the inactivity timeout and the relay hold time.
 It also lists all non-admin users with a dropdown to change their roles. Role
-changes are saved immediately when you pick a new value. Configuration documents
-are readable by any signed-in user so the general panel can display the relay hold time.
-Admins are allowed to update any user document so role changes persist.
+changes are saved immediately when you pick a new value and a toast confirms the
+update. Configuration documents are readable by any signed-in user so the
+general panel can display the relay hold time. Admins are allowed to update any
+user document so role changes persist.
 
 Invite tokens can be generated from the admin panel. Opening a token link will
 take the user to `register.html` where they can sign up. The login page no

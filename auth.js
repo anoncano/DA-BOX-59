@@ -165,7 +165,7 @@ if (location.pathname.includes("admin.html")) {
       sel.onchange = async () => {
         await updateDoc(doc(db, "users", docSnap.id), { role: sel.value });
         label.textContent = `${u.name} → ${sel.value}`;
-        showNotif("Role updated");
+        showNotif(`Role updated to ${sel.value}`);
       };
       $("userList").appendChild(row);
     });
