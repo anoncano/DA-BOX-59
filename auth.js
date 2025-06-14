@@ -24,7 +24,8 @@ const db = getFirestore(app);
 const $ = (id) => document.getElementById(id);
 
 // Entry: Login Page
-if (location.pathname.includes("index.html")) {
+const loginPaths = ["/", "/index.html"];
+if (loginPaths.includes(location.pathname)) {
   window.login = async () => {
     try {
       const email = $("email").value;
