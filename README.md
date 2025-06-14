@@ -42,3 +42,10 @@ Sample Firestore security rules are included in `firestore.rules`.
 The Firebase configuration in `auth.js` points to a sample project. Replace the
 credentials with your own Firebase project settings if you deploy this
 application.
+
+Account deletion is supported from the general panel. The action calls a Cloud
+Function that removes the signed-in user from Firebase Auth and signs them out.
+
+Firebase Hosting configuration files are included along with a GitHub Actions
+workflow that deploys preview channels for pull requests and pushes to the live
+site on merges to `main`.
