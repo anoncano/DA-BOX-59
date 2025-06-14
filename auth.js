@@ -136,6 +136,7 @@ if (location.pathname.includes("general.html")) {
 
 // Admin Panel Logic
 if (location.pathname.includes("admin.html")) {
+  let roleChanges = {};
   onAuthStateChanged(auth, async (user) => {
     if (!user) location.href = "index.html";
     const snap = await getDoc(doc(db, "users", user.uid));
@@ -162,10 +163,9 @@ if (location.pathname.includes("admin.html")) {
       const sel = row.querySelector("select");
       sel.value = u.role;
       const label = row.querySelector("div");
-      sel.onchange = async () => {
-        await updateDoc(doc(db, "users", docSnap.id), { role: sel.value });
+      sel.onchange = () => {
         label.textContent = `${u.name} → ${sel.value}`;
-        showNotif("Role updated");
+        roleChanges[docSnap.id] = sel.value;
       };
       $("userList").appendChild(row);
     });
@@ -181,6 +181,13 @@ if (location.pathname.includes("admin.html")) {
     const val = parseInt($("relayHoldTime").value);
     if (!isNaN(val)) await setDoc(doc(db, "config", "relayHoldTime"), { ms: val });
     showNotif("Saved relay hold time");
+  };
+
+  window.saveRoles = async () => {
+    const entries = Object.entries(roleChanges);
+    await Promise.all(entries.map(([uid, role]) => updateDoc(doc(db, "users", uid), { role })));
+    roleChanges = {};
+    showNotif("Roles saved");
   };
 
   window.generateToken = async () => {

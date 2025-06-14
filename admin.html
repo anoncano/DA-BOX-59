@@ -6,7 +6,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <style>#toast{transition:opacity .3s;} .hidden{opacity:0;}</style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen p-6 flex flex-col items-center">
+<body class="bg-gray-900 text-white min-h-screen p-6 flex items-center justify-center">
   <div class="w-full max-w-xl space-y-6">
     <header class="flex justify-between items-center">
       <h1 class="text-3xl font-semibold">Admin Panel</h1>
@@ -29,6 +29,7 @@
     </div>
 
     <div id="userList" class="space-y-2"></div>
+    <button id="saveRolesBtn" onclick="saveRoles()" class="w-full bg-purple-600 p-2 rounded">Save User Roles</button>
   </div>
 
   <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded hidden"></div>

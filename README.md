@@ -26,6 +26,8 @@ A minimal Firebase-based authentication demo with admin and general panels.
 - `auth.js` – shared Firebase logic and toast notifications (exposed as `showNotif`)
 
 The admin panel lets you adjust the inactivity timeout and the relay hold time.
+It also lists all non-admin users with a dropdown to change their roles. After
+making changes, press **Save User Roles** to persist them.
 Configuration documents are readable by any signed-in user so the general panel can display the relay hold time.
 
 Invite tokens can be generated from the admin panel. Opening a token link will
