@@ -28,8 +28,9 @@ A minimal Firebase-based authentication demo with admin and general panels.
 The admin panel lets you adjust the inactivity timeout and the relay hold time.
 
 Invite tokens can be generated from the admin panel. Opening a token link will
-show `register.html` where a new user can sign up. After registration, the user
-is redirected back to the login page.
+take the user to `register.html` where they can sign up. The login page no
+longer links to registration directly, so invitees must use their token URL.
+After registration, the user is redirected back to the login page.
 
 Sample Firestore security rules are included in `firestore.rules`.
 
