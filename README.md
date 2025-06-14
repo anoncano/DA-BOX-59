@@ -22,7 +22,9 @@ A minimal Firebase-based authentication demo with admin and general panels.
 - `index.html` – login page
 - `admin.html` – admin panel
 - `general.html` – general user panel
-- `auth.js` – shared Firebase logic
+- `auth.js` – shared Firebase logic and toast notifications
+
+The admin panel lets you adjust the inactivity timeout and the relay hold time.
 
 The Firebase configuration in `auth.js` points to a sample project. Replace the
 credentials with your own Firebase project settings if you deploy this

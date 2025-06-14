@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>DaBox Admin Panel</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>#toast{transition:opacity .3s;}</style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen p-6 flex flex-col items-center">
   <div class="w-full max-w-lg space-y-4">
@@ -17,8 +18,15 @@
       <input id="inactivityTimeout" type="number" class="w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="3000" />
       <button onclick="saveTimeout()" class="mt-2 w-full bg-blue-500 p-2 rounded">Save</button>
     </div>
+    <div>
+      <label class="block mb-1">Relay Hold Time (ms):</label>
+      <input id="relayHoldTime" type="number" class="w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="3000" />
+      <button onclick="saveRelayHold()" class="mt-2 w-full bg-blue-500 p-2 rounded">Save</button>
+    </div>
     <div id="userList" class="space-y-2"></div>
   </div>
+
+  <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded hidden"></div>
 
   <script type="module" src="auth.js"></script>
 </body>

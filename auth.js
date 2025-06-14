@@ -22,21 +22,36 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const $ = (id) => document.getElementById(id);
+const showNotif = (msg) => {
+  const el = $("toast");
+  if (!el) return alert(msg);
+  el.textContent = msg;
+  el.classList.remove("hidden");
+  setTimeout(() => el.classList.add("hidden"), 3000);
+};
 
 // Entry: Login Page
 window.login = async () => {
-    try {
-      const email = $("email").value;
-      const pass = $("password").value;
-      const cred = await signInWithEmailAndPassword(auth, email, pass);
-      const snap = await getDoc(doc(db, "users", cred.user.uid));
-      if (!snap.exists()) return;
-      const role = snap.data().role;
-      if (role === "admin") location.href = "admin.html";
-      else location.href = "general.html";
-    } catch (err) {
-      $("msg").textContent = "❌ " + err.message;
-    }
+  const btn = $("loginBtn");
+  const loading = $("loading");
+  btn && (btn.disabled = true);
+  loading && loading.classList.remove("hidden");
+  $("msg").textContent = "";
+  try {
+    const email = $("email").value;
+    const pass = $("password").value;
+    const cred = await signInWithEmailAndPassword(auth, email, pass);
+    const snap = await getDoc(doc(db, "users", cred.user.uid));
+    if (!snap.exists()) return;
+    const role = snap.data().role;
+    if (role === "admin") location.href = "admin.html";
+    else location.href = "general.html";
+  } catch (err) {
+    $("msg").textContent = "❌ " + err.message;
+  } finally {
+    btn && (btn.disabled = false);
+    loading && loading.classList.add("hidden");
+  }
 };
 
 // General Panel Logic
@@ -50,8 +65,8 @@ if (location.pathname.includes("general.html")) {
     const snap = await getDoc(doc(db, "users", user.uid));
     const role = snap.data()?.role;
     if (role !== "admin") {
-      const conf = await getDoc(doc(db, "config", "inactivity"));
-      if (conf.exists()) holdMs = conf.data().timeout || holdMs;
+      const hold = await getDoc(doc(db, "config", "relayHoldTime"));
+      if (hold.exists()) holdMs = hold.data().ms || holdMs;
 
       toggleBtn.onclick = () => {
         if (unlocked) return;
@@ -76,7 +91,7 @@ if (location.pathname.includes("general.html")) {
           });
           const url = `${location.origin}/index.html?token=${newToken}`;
           await navigator.clipboard.writeText(url);
-          alert("Token copied:\n" + url);
+          showNotif("Token copied:\n" + url);
         };
       }
     }
@@ -92,6 +107,8 @@ if (location.pathname.includes("admin.html")) {
 
     const conf = await getDoc(doc(db, "config", "inactivity"));
     if (conf.exists()) $("inactivityTimeout").value = conf.data().timeout || 3000;
+    const holdConf = await getDoc(doc(db, "config", "relayHoldTime"));
+    if (holdConf.exists()) $("relayHoldTime").value = holdConf.data().ms || 3000;
 
     const snapUsers = await getDocs(collection(db, "users"));
     snapUsers.forEach(docSnap => {
@@ -119,6 +136,13 @@ if (location.pathname.includes("admin.html")) {
   window.saveTimeout = async () => {
     const val = parseInt($("inactivityTimeout").value);
     if (!isNaN(val)) await setDoc(doc(db, "config", "inactivity"), { timeout: val });
+    showNotif("Saved inactivity timeout");
+  };
+
+  window.saveRelayHold = async () => {
+    const val = parseInt($("relayHoldTime").value);
+    if (!isNaN(val)) await setDoc(doc(db, "config", "relayHoldTime"), { ms: val });
+    showNotif("Saved relay hold time");
   };
 
   window.generateToken = async () => {
@@ -128,7 +152,7 @@ if (location.pathname.includes("admin.html")) {
     });
     const url = `${location.origin}/index.html?token=${newToken}`;
     await navigator.clipboard.writeText(url);
-    alert("Token copied:\n" + url);
+    showNotif("Token copied:\n" + url);
   };
 }
 
