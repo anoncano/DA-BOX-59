@@ -32,6 +32,7 @@ const showNotif = (msg) => {
     setTimeout(() => el.classList.add("hidden"), 300);
   }, 3000);
 };
+window.showNotif = showNotif;
 
 // Entry: Login Page
 window.login = async () => {

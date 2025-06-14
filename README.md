@@ -23,9 +23,10 @@ A minimal Firebase-based authentication demo with admin and general panels.
 - `admin.html` – admin panel
 - `general.html` – general user panel
 - `register.html` – registration page used with invite tokens
-- `auth.js` – shared Firebase logic and toast notifications
+- `auth.js` – shared Firebase logic and toast notifications (exposed as `showNotif`)
 
 The admin panel lets you adjust the inactivity timeout and the relay hold time.
+Configuration documents are readable by any signed-in user so the general panel can display the relay hold time.
 
 Invite tokens can be generated from the admin panel. Opening a token link will
 take the user to `register.html` where they can sign up. The login page no
