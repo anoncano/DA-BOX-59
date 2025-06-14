@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <title>DaBox Admin Panel</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>#toast{transition:opacity .3s;} .hidden{opacity:0;}</style>
+  <style>#toast { transition: opacity 0.3s; } .hidden { opacity: 0; }</style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen p-6 flex items-center justify-center">
   <div class="w-full max-w-xl space-y-6">
@@ -33,6 +33,104 @@
 
   <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded hidden"></div>
 
-  <script type="module" src="auth.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getAuth, signOut, onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import {
+      getFirestore, doc, setDoc, getDoc, updateDoc,
+      collection, getDocs, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { v4 as uuidv4 } from "https://jspm.dev/uuid";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDF_BGAKz4NbsZPZmAcJofaYsccxtIIQ_o",
+      authDomain: "da-box-59.firebaseapp.com",
+      projectId: "da-box-59",
+      storageBucket: "da-box-59.firebasestorage.app",
+      messagingSenderId: "382682873063",
+      appId: "1:382682873063:web:e240e1bf8e14527b277642"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const $ = id => document.getElementById(id);
+
+    const showNotif = msg => {
+      const el = $("toast");
+      if (!el) return alert(msg);
+      el.textContent = msg;
+      el.classList.remove("hidden", "opacity-0");
+      setTimeout(() => {
+        el.classList.add("opacity-0");
+        setTimeout(() => el.classList.add("hidden"), 300);
+      }, 3000);
+    };
+
+    window.logout = async () => {
+      await signOut(auth);
+      location.href = "index.html";
+    };
+
+    window.saveTimeout = async () => {
+      const val = parseInt($("inactivityTimeout").value);
+      if (!isNaN(val)) await setDoc(doc(db, "config", "inactivity"), { timeout: val });
+      showNotif("Saved inactivity timeout");
+    };
+
+    window.saveRelayHold = async () => {
+      const val = parseInt($("relayHoldTime").value);
+      if (!isNaN(val)) await setDoc(doc(db, "config", "relayHoldTime"), { ms: val });
+      showNotif("Saved relay hold time");
+    };
+
+    window.generateToken = async () => {
+      const newToken = uuidv4();
+      await setDoc(doc(db, "registerTokens", newToken), {
+        createdAt: serverTimestamp(), used: false
+      });
+      const url = `${location.origin}/register.html?token=${newToken}`;
+      await navigator.clipboard.writeText(url);
+      showNotif("Token copied:\n" + url);
+    };
+
+    onAuthStateChanged(auth, async user => {
+      if (!user) return location.href = "index.html";
+      const snap = await getDoc(doc(db, "users", user.uid));
+      if (snap.data()?.role !== "admin") return location.href = "general.html";
+
+      const conf = await getDoc(doc(db, "config", "inactivity"));
+      if (conf.exists()) $("inactivityTimeout").value = conf.data().timeout || 3000;
+
+      const holdConf = await getDoc(doc(db, "config", "relayHoldTime"));
+      if (holdConf.exists()) $("relayHoldTime").value = holdConf.data().ms || 3000;
+
+      const snapUsers = await getDocs(collection(db, "users"));
+      snapUsers.forEach(docSnap => {
+        const u = docSnap.data();
+        if (u.role === "admin") return;
+        const row = document.createElement("div");
+        row.className = "p-2 bg-gray-700 rounded flex justify-between items-center";
+        row.innerHTML = `
+          <div>${u.name} → ${u.role}</div>
+          <select class="bg-gray-800 text-white rounded px-2 py-1">
+            <option value="general">general</option>
+            <option value="sub">sub</option>
+          </select>
+        `;
+        const sel = row.querySelector("select");
+        sel.value = u.role;
+        const label = row.querySelector("div");
+        sel.onchange = async () => {
+          await updateDoc(doc(db, "users", docSnap.id), { role: sel.value });
+          label.textContent = `${u.name} → ${sel.value}`;
+          showNotif(`Role updated to ${sel.value}`);
+        };
+        $("userList").appendChild(row);
+      });
+    });
+  </script>
 </body>
 </html>
