@@ -24,9 +24,7 @@ const db = getFirestore(app);
 const $ = (id) => document.getElementById(id);
 
 // Entry: Login Page
-const loginPaths = ["/", "/index.html"];
-if (loginPaths.includes(location.pathname)) {
-  window.login = async () => {
+window.login = async () => {
     try {
       const email = $("email").value;
       const pass = $("password").value;
@@ -39,8 +37,7 @@ if (loginPaths.includes(location.pathname)) {
     } catch (err) {
       $("msg").textContent = "❌ " + err.message;
     }
-  };
-}
+};
 
 // General Panel Logic
 if (location.pathname.includes("general.html")) {
