@@ -147,9 +147,13 @@ if (location.pathname.includes("admin.html")) {
     if (holdConf.exists()) $("relayHoldTime").value = holdConf.data().ms || 3000;
 
     const snapUsers = await getDocs(collection(db, "users"));
+    const list = $("userList");
+    list.innerHTML = "";
+    let found = false;
     snapUsers.forEach(docSnap => {
       const u = docSnap.data();
       if (u.role === "admin") return;
+      found = true;
       const row = document.createElement("div");
       row.className = "p-2 bg-gray-700 rounded flex justify-between items-center";
       row.innerHTML = `
@@ -167,8 +171,11 @@ if (location.pathname.includes("admin.html")) {
         label.textContent = `${u.name} → ${sel.value}`;
         showNotif("Role updated");
       };
-      $("userList").appendChild(row);
+      list.appendChild(row);
     });
+    if (!found) {
+      list.innerHTML = "<p class='text-center text-gray-400'>No users found</p>";
+    }
   });
 
   window.saveTimeout = async () => {
@@ -198,4 +205,9 @@ if (location.pathname.includes("admin.html")) {
 window.logout = async () => {
   await signOut(auth);
   location.href = "index.html";
+};
+
+// Placeholder account deletion
+window.deleteAccount = () => {
+  showNotif("Account deletion coming soon");
 };

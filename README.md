@@ -38,6 +38,9 @@ After registration, the user is redirected back to the login page.
 
 Sample Firestore security rules are included in `firestore.rules`.
 
+The **Delete** button on the general panel currently just shows a toast message.
+Actual account removal isn't implemented yet.
+
 The Firebase configuration in `auth.js` points to a sample project. Replace the
 credentials with your own Firebase project settings if you deploy this
 application.
