@@ -27,9 +27,10 @@ A minimal Firebase-based authentication demo with admin and general panels.
 
 The admin panel lets you adjust the inactivity timeout and the relay hold time.
 It also lists all non-admin users with a dropdown to change their roles. Role
-changes are saved immediately when you pick a new value. Configuration documents
-are readable by any signed-in user so the general panel can display the relay hold time.
-Admins are allowed to update any user document so role changes persist.
+changes are saved immediately when you pick a new value and a toast confirms the
+update. Configuration documents are readable by any signed-in user so the
+general panel can display the relay hold time. Admins are allowed to update any
+user document so role changes persist.
 
 Invite tokens can be generated from the admin panel. Opening a token link will
 take the user to `register.html` where they can sign up. The login page no
@@ -41,3 +42,10 @@ Sample Firestore security rules are included in `firestore.rules`.
 The Firebase configuration in `auth.js` points to a sample project. Replace the
 credentials with your own Firebase project settings if you deploy this
 application.
+
+Account deletion is supported from the general panel. The action calls a Cloud
+Function that removes the signed-in user from Firebase Auth and signs them out.
+
+Firebase Hosting configuration files are included along with a GitHub Actions
+workflow that deploys preview channels for pull requests and pushes to the live
+site on merges to `main`.

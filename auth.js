@@ -7,6 +7,7 @@ import {
   getFirestore, doc, setDoc, getDoc, updateDoc,
   collection, getDocs, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 import { v4 as uuidv4 } from "https://jspm.dev/uuid";
 
 const firebaseConfig = {
@@ -21,6 +22,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const functions = getFunctions(app);
 const $ = (id) => document.getElementById(id);
 const showNotif = (msg) => {
   const el = $("toast");
@@ -165,7 +167,7 @@ if (location.pathname.includes("admin.html")) {
       sel.onchange = async () => {
         await updateDoc(doc(db, "users", docSnap.id), { role: sel.value });
         label.textContent = `${u.name} → ${sel.value}`;
-        showNotif("Role updated");
+        showNotif(`Role updated to ${sel.value}`);
       };
       $("userList").appendChild(row);
     });
@@ -198,4 +200,16 @@ if (location.pathname.includes("admin.html")) {
 window.logout = async () => {
   await signOut(auth);
   location.href = "index.html";
+};
+
+window.deleteAccount = async () => {
+  try {
+    const callDelete = httpsCallable(functions, "deleteAccount");
+    await callDelete();
+    showNotif("Account deleted");
+    await signOut(auth);
+    location.href = "index.html";
+  } catch (err) {
+    showNotif("Failed to delete account");
+  }
 };

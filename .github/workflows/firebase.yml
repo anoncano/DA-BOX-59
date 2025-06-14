@@ -1,0 +1,24 @@
+name: Deploy to Firebase
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  checks: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: npm ci
+      - run: npm ci --prefix functions
+      - run: npm test --silent
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: "${{ secrets.GITHUB_TOKEN }}"
+          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_DABOX59 }}"
+          projectId: da-box-59
+          channelId: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || 'live' }}
