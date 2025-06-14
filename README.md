@@ -22,9 +22,16 @@ A minimal Firebase-based authentication demo with admin and general panels.
 - `index.html` – login page
 - `admin.html` – admin panel
 - `general.html` – general user panel
+- `register.html` – registration page used with invite tokens
 - `auth.js` – shared Firebase logic and toast notifications
 
 The admin panel lets you adjust the inactivity timeout and the relay hold time.
+
+Invite tokens can be generated from the admin panel. Opening a token link will
+show `register.html` where a new user can sign up. After registration, the user
+is redirected back to the login page.
+
+Sample Firestore security rules are included in `firestore.rules`.
 
 The Firebase configuration in `auth.js` points to a sample project. Replace the
 credentials with your own Firebase project settings if you deploy this

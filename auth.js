@@ -26,8 +26,11 @@ const showNotif = (msg) => {
   const el = $("toast");
   if (!el) return alert(msg);
   el.textContent = msg;
-  el.classList.remove("hidden");
-  setTimeout(() => el.classList.add("hidden"), 3000);
+  el.classList.remove("hidden", "opacity-0");
+  setTimeout(() => {
+    el.classList.add("opacity-0");
+    setTimeout(() => el.classList.add("hidden"), 300);
+  }, 3000);
 };
 
 // Entry: Login Page
@@ -53,6 +56,38 @@ window.login = async () => {
     loading && loading.classList.add("hidden");
   }
 };
+
+// Register Page Logic
+if (location.pathname.includes("register.html")) {
+  const params = new URLSearchParams(location.search);
+  const token = params.get("token");
+  if (!token) {
+    $("regMsg").textContent = "Missing token";
+  }
+  $("regBtn").onclick = async () => {
+    const name = $("name").value;
+    const email = $("regEmail").value;
+    const pass = $("regPassword").value;
+    try {
+      const tokSnap = await getDoc(doc(db, "registerTokens", token));
+      if (!tokSnap.exists() || tokSnap.data().used) {
+        $("regMsg").textContent = "Invalid or used token";
+        return;
+      }
+      const cred = await createUserWithEmailAndPassword(auth, email, pass);
+      await setDoc(doc(db, "users", cred.user.uid), {
+        name,
+        role: "general"
+      });
+      await updateDoc(doc(db, "registerTokens", token), { used: true });
+      showNotif("Registration successful");
+      await signOut(auth);
+      setTimeout(() => (location.href = "index.html"), 500);
+    } catch (err) {
+      $("regMsg").textContent = "❌ " + err.message;
+    }
+  };
+}
 
 // General Panel Logic
 if (location.pathname.includes("general.html")) {
@@ -89,7 +124,7 @@ if (location.pathname.includes("general.html")) {
           await setDoc(doc(db, "registerTokens", newToken), {
             createdAt: serverTimestamp(), used: false
           });
-          const url = `${location.origin}/index.html?token=${newToken}`;
+          const url = `${location.origin}/register.html?token=${newToken}`;
           await navigator.clipboard.writeText(url);
           showNotif("Token copied:\n" + url);
         };
@@ -125,9 +160,11 @@ if (location.pathname.includes("admin.html")) {
       `;
       const sel = row.querySelector("select");
       sel.value = u.role;
+      const label = row.querySelector("div");
       sel.onchange = async () => {
         await updateDoc(doc(db, "users", docSnap.id), { role: sel.value });
-        location.reload();
+        label.textContent = `${u.name} → ${sel.value}`;
+        showNotif("Role updated");
       };
       $("userList").appendChild(row);
     });
@@ -150,7 +187,7 @@ if (location.pathname.includes("admin.html")) {
     await setDoc(doc(db, "registerTokens", newToken), {
       createdAt: serverTimestamp(), used: false
     });
-    const url = `${location.origin}/index.html?token=${newToken}`;
+    const url = `${location.origin}/register.html?token=${newToken}`;
     await navigator.clipboard.writeText(url);
     showNotif("Token copied:\n" + url);
   };

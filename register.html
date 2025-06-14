@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>DaBox Register</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>#toast{transition:opacity .3s;} .hidden{opacity:0;}</style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-6">
+  <div id="regContainer" class="w-full max-w-sm bg-gray-800 p-6 rounded shadow space-y-4">
+    <h2 class="text-xl font-bold text-center">Create Account</h2>
+    <input id="name" type="text" placeholder="Name" class="w-full p-2 bg-gray-700 rounded border border-gray-600" />
+    <input id="regEmail" type="email" placeholder="Email" class="w-full p-2 bg-gray-700 rounded border border-gray-600" />
+    <input id="regPassword" type="password" placeholder="Password" class="w-full p-2 bg-gray-700 rounded border border-gray-600" />
+    <button id="regBtn" class="w-full bg-green-600 hover:bg-green-700 p-2 rounded">Sign Up</button>
+    <p id="regMsg" class="text-sm text-red-400 text-center"></p>
+  </div>
+
+  <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded hidden"></div>
+
+  <script type="module" src="auth.js"></script>
+</body>
+</html>
