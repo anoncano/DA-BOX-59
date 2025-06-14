@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "jest",
+    "test": "node tests/auth.test.js",
     "start": "http-server ."
   },
   "repository": {
@@ -22,7 +22,6 @@
     "firebase": "^11.9.1"
   },
   "devDependencies": {
-    "http-server": "^14.1.1",
-    "jest": "^30.0.0"
+    "http-server": "^14.1.1"
   }
 }
