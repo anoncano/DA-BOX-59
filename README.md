@@ -43,8 +43,10 @@ The Firebase configuration in `auth.js` points to a sample project. Replace the
 credentials with your own Firebase project settings if you deploy this
 application.
 
-Account deletion is supported from the general panel. The action calls a Cloud
-Function that removes the signed-in user from Firebase Auth and signs them out.
+The general panel includes a **Delete** button. It currently serves as a
+placeholder and only shows a notification. The underlying `deleteAccount` Cloud
+Function is still provided in `functions/index.js` should you wish to wire it up
+for actual account removal.
 
 Firebase Hosting configuration files are included along with a GitHub Actions
 workflow that deploys preview channels for pull requests and pushes to the live

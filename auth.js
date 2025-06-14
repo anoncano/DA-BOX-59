@@ -202,14 +202,8 @@ window.logout = async () => {
   location.href = "index.html";
 };
 
-window.deleteAccount = async () => {
-  try {
-    const callDelete = httpsCallable(functions, "deleteAccount");
-    await callDelete();
-    showNotif("Account deleted");
-    await signOut(auth);
-    location.href = "index.html";
-  } catch (err) {
-    showNotif("Failed to delete account");
-  }
+// Placeholder delete action - the Cloud Function remains but
+// the UI now only shows a notification.
+window.deleteAccount = () => {
+  showNotif("Account deletion not implemented yet");
 };
