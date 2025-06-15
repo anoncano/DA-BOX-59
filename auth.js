@@ -227,5 +227,5 @@ window.logout = async () => {
 };
 
 window.deleteAccount = () => {
-  showNotif("Account deletion not implemented yet");
+  showNotif("Account deletion coming soon");
 };
