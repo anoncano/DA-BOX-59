@@ -48,6 +48,14 @@ placeholder and only shows a notification. The underlying `deleteAccount` Cloud
 Function is still provided in `functions/index.js` should you wish to wire it up
 for actual account removal.
 
+The large toggle on the general panel now updates the `config/relaystate`
+document in Firestore. When pressed it sets the state to `unlocked` and reverts
+to `locked` after the admin-defined relay hold time. Authenticated users can now
+update this document as specified in `firestore.rules`. The interface uses
+standard event listeners for better browser compatibility and pages now include
+viewport metadata and responsive layout tweaks for improved usability on mobile
+devices.
+
 Firebase Hosting configuration files are included along with a GitHub Actions
 workflow that deploys preview channels for pull requests and pushes to the live
 site on merges to `main`.
