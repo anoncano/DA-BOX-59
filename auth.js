@@ -22,10 +22,15 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+const legacyApp = initializeApp({
+  ...firebaseConfig,
+  databaseURL: "https://da-box-59.firebaseio.com"
+}, "legacy");
 const auth = getAuth(app);
 const db = getFirestore(app);
 const functions = getFunctions(app);
 const rtdb = getDatabase(app);
+const rtdbLegacy = getDatabase(legacyApp);
 const $ = (id) => document.getElementById(id);
 const showNotif = (msg) => {
   const el = $("toast");
@@ -124,8 +129,11 @@ if (location.href.includes("general")) {
           toggleBtn.classList.add("bg-green-600");
           toggleBtn.disabled = true;
           try {
-            await setDoc(stateDoc, { state: "unlocked" });
-            await set(ref(rtdb, "relaystate"), "unlocked");
+            await Promise.all([
+              setDoc(stateDoc, { state: "unlocked" }),
+              set(ref(rtdb, "relaystate"), "unlocked"),
+              set(ref(rtdbLegacy, "relaystate"), "unlocked")
+            ]);
           } catch {
             showNotif("Failed to update relay state");
           }
@@ -136,8 +144,11 @@ if (location.href.includes("general")) {
             toggleBtn.classList.add("bg-red-600");
             toggleBtn.disabled = false;
             try {
-              await setDoc(stateDoc, { state: "locked" });
-              await set(ref(rtdb, "relaystate"), "locked");
+              await Promise.all([
+                setDoc(stateDoc, { state: "locked" }),
+                set(ref(rtdb, "relaystate"), "locked"),
+                set(ref(rtdbLegacy, "relaystate"), "locked")
+              ]);
             } catch {
               showNotif("Failed to update relay state");
             }
