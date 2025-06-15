@@ -100,40 +100,31 @@ if (location.href.includes("general")) {
   window.addEventListener("DOMContentLoaded", () => {
     const toggleBtn = $("toggleBtn");
     const copyBtn = $("copyBtn");
-
-    console.log("🔥 DOM ready. toggleBtn =", toggleBtn);
-
     let unlocked = false;
     let holdMs = 3000;
 
     onAuthStateChanged(auth, async (user) => {
-      console.log("👤 Auth UID:", user?.uid);
       if (!user) return location.href = "index.html";
-
       const snap = await getDoc(doc(db, "users", user.uid));
       const role = snap.data()?.role;
-      console.log("📄 Role snapshot:", role);
 
       if (role !== "admin") {
         const hold = await getDoc(doc(db, "config", "relayHoldTime"));
-        if (hold.exists()) {
-          holdMs = hold.data().ms || holdMs;
-          console.log("⏱️ Hold time loaded:", holdMs);
-        }
+        if (hold.exists()) holdMs = hold.data().ms || holdMs;
 
         toggleBtn.onclick = () => {
-          console.log("🧠 Toggle clicked, unlocked =", unlocked);
           if (unlocked) return;
           unlocked = true;
           toggleBtn.textContent = "UNLOCKED";
-          toggleBtn.classList.replace("bg-red-600", "bg-green-600");
+          toggleBtn.classList.remove("bg-red-600");
+          toggleBtn.classList.add("bg-green-600");
           toggleBtn.disabled = true;
           setTimeout(() => {
             unlocked = false;
             toggleBtn.textContent = "LOCKED";
-            toggleBtn.classList.replace("bg-green-600", "bg-red-600");
+            toggleBtn.classList.remove("bg-green-600");
+            toggleBtn.classList.add("bg-red-600");
             toggleBtn.disabled = false;
-            console.log("🔒 Re-locked after", holdMs, "ms");
           }, holdMs);
         };
 
