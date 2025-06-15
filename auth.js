@@ -5,7 +5,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore, doc, setDoc, getDoc, updateDoc,
-  collection, getDocs, serverTimestamp
+  collection, getDocs, serverTimestamp, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 import { v4 as uuidv4 } from "https://jspm.dev/uuid";
@@ -105,6 +105,7 @@ if (location.href.includes("general")) {
     let unlocked = false;
     let holdMs = 3000;
     const toggleRef = ref(rtdb, "esp/toggle");
+    const stateDoc = doc(db, "config", "relaystate");
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) return location.href = "index.html";
@@ -115,51 +116,47 @@ if (location.href.includes("general")) {
         try {
           const holdSnap = await getDoc(doc(db, "config", "relayHoldTime"));
           if (holdSnap.exists()) holdMs = holdSnap.data().ms || holdMs;
-        } catch {
-          // fallback to default holdMs
-        }
+        } catch {}
 
-        // Initialize button UI state
-        unlocked = false;
-        toggleBtn.textContent = "LOCKED";
-        toggleBtn.classList.remove("bg-green-600");
-        toggleBtn.classList.add("bg-red-600");
-        toggleBtn.disabled = false;
-
-        toggleBtn.onclick = async () => {
-          if (unlocked) return;
-          unlocked = true;
-
-          toggleBtn.textContent = "UNLOCKED";
-          toggleBtn.classList.remove("bg-red-600");
-          toggleBtn.classList.add("bg-green-600");
-          toggleBtn.disabled = true;
-
-          try {
-            await set(toggleRef, "unlocked");
-          } catch {
-            showNotif("Failed to update relay state");
-            // revert UI on failure
+        // Real-time listen to Firestore relaystate and update UI accordingly
+        onSnapshot(stateDoc, (docSnap) => {
+          if (!docSnap.exists()) return;
+          const state = docSnap.data().state;
+          if (state === "unlocked") {
+            unlocked = true;
+            toggleBtn.textContent = "UNLOCKED";
+            toggleBtn.classList.remove("bg-red-600");
+            toggleBtn.classList.add("bg-green-600");
+            toggleBtn.disabled = true;
+          } else {
             unlocked = false;
             toggleBtn.textContent = "LOCKED";
             toggleBtn.classList.remove("bg-green-600");
             toggleBtn.classList.add("bg-red-600");
             toggleBtn.disabled = false;
+          }
+        });
+
+        toggleBtn.onclick = async () => {
+          if (unlocked) return;
+
+          try {
+            await setDoc(stateDoc, { state: "unlocked" });
+            await set(toggleRef, "unlocked");
+          } catch {
+            showNotif("Failed to update relay state");
             return;
           }
 
+          // UI update handled by onSnapshot listener
+
           setTimeout(async () => {
             try {
+              await setDoc(stateDoc, { state: "locked" });
               await set(toggleRef, "locked");
             } catch {
               showNotif("Failed to update relay state");
             }
-            // reset UI state
-            unlocked = false;
-            toggleBtn.textContent = "LOCKED";
-            toggleBtn.classList.remove("bg-green-600");
-            toggleBtn.classList.add("bg-red-600");
-            toggleBtn.disabled = false;
           }, holdMs);
         };
 
