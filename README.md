@@ -49,12 +49,9 @@ Function is still provided in `functions/index.js` should you wish to wire it up
 for actual account removal.
 
 The large toggle on the general panel now updates the `config/relaystate`
-document in Firestore. It then mirrors the state to the Realtime Database
-instance at `https://da-box-59-default-rtdb.asia-southeast1.firebasedatabase.app`.
-If that write fails, it automatically retries against the legacy host
-`https://da-box-59.firebaseio.com`. A toast is shown only when all writes fail
-so normal operation continues even if one of the databases is temporarily
-unreachable.
+document in Firestore. It also writes the state to the Realtime Database
+instance at `https://da-box-59.firebaseio.com` so any connected clients can
+react to changes.
 When pressed it sets the state to `unlocked` and reverts to `locked` after the
 admin-defined relay hold time. Authenticated users can now update these values
 as specified in `firestore.rules`. The interface uses

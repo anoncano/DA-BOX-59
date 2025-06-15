@@ -18,19 +18,14 @@ const firebaseConfig = {
   storageBucket: "da-box-59.firebasestorage.app",
   messagingSenderId: "382682873063",
   appId: "1:382682873063:web:e240e1bf8e14527b277642",
-  databaseURL: "https://da-box-59-default-rtdb.asia-southeast1.firebasedatabase.app"
+  databaseURL: "https://da-box-59.firebaseio.com"
 };
 
 const app = initializeApp(firebaseConfig);
-const legacyApp = initializeApp({
-  ...firebaseConfig,
-  databaseURL: "https://da-box-59.firebaseio.com"
-}, "legacy");
 const auth = getAuth(app);
 const db = getFirestore(app);
 const functions = getFunctions(app);
 const rtdb = getDatabase(app);
-const rtdbLegacy = getDatabase(legacyApp);
 const $ = (id) => document.getElementById(id);
 const showNotif = (msg) => {
   const el = $("toast");
@@ -130,15 +125,7 @@ if (location.href.includes("general")) {
             ]);
             return true;
           } catch {
-            try {
-              await Promise.all([
-                setDoc(stateDoc, { state: val }),
-                set(ref(rtdbLegacy, "relaystate"), val)
-              ]);
-              return true;
-            } catch {
-              return false;
-            }
+            return false;
           }
         };
 
