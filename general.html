@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DaBox General Panel</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>#toast{transition:opacity .3s;} .hidden{opacity:0;}</style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen p-6 flex flex-col items-center justify-center">
-  <button id="toggleBtn" class="w-[90vw] h-[90vh] text-4xl font-bold rounded bg-red-600">LOCKED</button>
+<body class="bg-gray-900 text-white min-h-screen p-4 sm:p-6 flex flex-col items-center justify-center">
+  <button id="toggleBtn" class="w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 text-3xl sm:text-4xl font-bold rounded bg-red-600">LOCKED</button>
     <div class="mt-6 flex gap-4">
       <button onclick="logout()" class="bg-gray-700 px-4 py-2 rounded">Logout</button>
       <button onclick="deleteAccount()" class="bg-gray-700 px-4 py-2 rounded">Delete</button>

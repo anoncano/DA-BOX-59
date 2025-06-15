@@ -2,13 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DaBox Login</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="icon" href="favicon.ico" />
   <style>#toast{transition:opacity .3s;} .hidden{opacity:0;}</style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-6">
-  <div id="authContainer" class="w-full max-w-sm bg-gray-800 p-6 rounded shadow space-y-4">
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4 sm:p-6">
+  <div id="authContainer" class="w-full max-w-xs sm:max-w-sm md:max-w-md bg-gray-800 p-4 sm:p-6 rounded shadow mx-auto space-y-4">
     <h2 class="text-xl font-bold text-center">Welcome to DaBox</h2>
     <input id="email" type="email" placeholder="Email" class="w-full p-2 bg-gray-700 rounded border border-gray-600" />
     <input id="password" type="password" placeholder="Password" class="w-full p-2 bg-gray-700 rounded border border-gray-600" />

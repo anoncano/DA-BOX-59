@@ -112,21 +112,32 @@ if (location.href.includes("general")) {
         const hold = await getDoc(doc(db, "config", "relayHoldTime"));
         if (hold.exists()) holdMs = hold.data().ms || holdMs;
 
-        toggleBtn.onclick = () => {
+        const stateDoc = doc(db, "config", "relaystate");
+        toggleBtn.addEventListener("click", async () => {
           if (unlocked) return;
           unlocked = true;
           toggleBtn.textContent = "UNLOCKED";
           toggleBtn.classList.remove("bg-red-600");
           toggleBtn.classList.add("bg-green-600");
           toggleBtn.disabled = true;
-          setTimeout(() => {
+          try {
+            await setDoc(stateDoc, { state: "unlocked" });
+          } catch {
+            showNotif("Failed to update relay state");
+          }
+          setTimeout(async () => {
             unlocked = false;
             toggleBtn.textContent = "LOCKED";
             toggleBtn.classList.remove("bg-green-600");
             toggleBtn.classList.add("bg-red-600");
             toggleBtn.disabled = false;
+            try {
+              await setDoc(stateDoc, { state: "locked" });
+            } catch {
+              showNotif("Failed to update relay state");
+            }
           }, holdMs);
-        };
+        });
 
         if (role === "sub") {
           copyBtn.classList.remove("hidden");
