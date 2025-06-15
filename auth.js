@@ -8,6 +8,7 @@ import {
   collection, getDocs, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getFunctions } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
+import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 import { v4 as uuidv4 } from "https://jspm.dev/uuid";
 
 const firebaseConfig = {
@@ -23,6 +24,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const functions = getFunctions(app);
+const rtdb = getDatabase(app);
 const $ = (id) => document.getElementById(id);
 const showNotif = (msg) => {
   const el = $("toast");
@@ -122,6 +124,7 @@ if (location.href.includes("general")) {
           toggleBtn.disabled = true;
           try {
             await setDoc(stateDoc, { state: "unlocked" });
+            await set(ref(rtdb, "relaystate"), "unlocked");
           } catch {
             showNotif("Failed to update relay state");
           }
@@ -133,6 +136,7 @@ if (location.href.includes("general")) {
             toggleBtn.disabled = false;
             try {
               await setDoc(stateDoc, { state: "locked" });
+              await set(ref(rtdb, "relaystate"), "locked");
             } catch {
               showNotif("Failed to update relay state");
             }
