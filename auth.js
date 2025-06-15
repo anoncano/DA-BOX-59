@@ -121,6 +121,27 @@ if (location.href.includes("general")) {
         if (hold.exists()) holdMs = hold.data().ms || holdMs;
 
         const stateDoc = doc(db, "config", "relaystate");
+
+        const updateRelay = async (val) => {
+          try {
+            await Promise.all([
+              setDoc(stateDoc, { state: val }),
+              set(ref(rtdb, "relaystate"), val)
+            ]);
+            return true;
+          } catch {
+            try {
+              await Promise.all([
+                setDoc(stateDoc, { state: val }),
+                set(ref(rtdbLegacy, "relaystate"), val)
+              ]);
+              return true;
+            } catch {
+              return false;
+            }
+          }
+        };
+
         toggleBtn.addEventListener("click", async () => {
           if (unlocked) return;
           unlocked = true;
@@ -128,12 +149,8 @@ if (location.href.includes("general")) {
           toggleBtn.classList.remove("bg-red-600");
           toggleBtn.classList.add("bg-green-600");
           toggleBtn.disabled = true;
-          const res1 = await Promise.allSettled([
-            setDoc(stateDoc, { state: "unlocked" }),
-            set(ref(rtdb, "relaystate"), "unlocked"),
-            set(ref(rtdbLegacy, "relaystate"), "unlocked")
-          ]);
-          if (res1.every(r => r.status === "rejected")) {
+          const ok1 = await updateRelay("unlocked");
+          if (!ok1) {
             showNotif("Failed to update relay state");
           }
           setTimeout(async () => {
@@ -142,12 +159,8 @@ if (location.href.includes("general")) {
             toggleBtn.classList.remove("bg-green-600");
             toggleBtn.classList.add("bg-red-600");
             toggleBtn.disabled = false;
-            const res2 = await Promise.allSettled([
-              setDoc(stateDoc, { state: "locked" }),
-              set(ref(rtdb, "relaystate"), "locked"),
-              set(ref(rtdbLegacy, "relaystate"), "locked")
-            ]);
-            if (res2.every(r => r.status === "rejected")) {
+            const ok2 = await updateRelay("locked");
+            if (!ok2) {
               showNotif("Failed to update relay state");
             }
           }, holdMs);
