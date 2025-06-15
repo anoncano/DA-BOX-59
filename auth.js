@@ -13,11 +13,13 @@ import { v4 as uuidv4 } from "https://jspm.dev/uuid";
 const firebaseConfig = {
   apiKey: "AIzaSyDF_BGAKz4NbsZPZmAcJofaYsccxtIIQ_o",
   authDomain: "da-box-59.firebaseapp.com",
+  databaseURL: "https://da-box-59-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "da-box-59",
   storageBucket: "da-box-59.firebasestorage.app",
   messagingSenderId: "382682873063",
   appId: "1:382682873063:web:e240e1bf8e14527b277642"
 };
+
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
