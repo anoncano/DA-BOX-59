@@ -7,7 +7,7 @@ import {
   getFirestore, doc, setDoc, getDoc, updateDoc,
   collection, getDocs, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { getFunctions } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
+import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 import { v4 as uuidv4 } from "https://jspm.dev/uuid";
 
 const firebaseConfig = {
@@ -22,8 +22,9 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const functions = getFunctions(app);
+const rtdb = getDatabase(app);
 const $ = (id) => document.getElementById(id);
+
 const showNotif = (msg) => {
   const el = $("toast");
   if (!el) return alert(msg);
@@ -99,7 +100,6 @@ if (location.href.includes("register")) {
 if (location.href.includes("general")) {
   window.addEventListener("DOMContentLoaded", () => {
     const toggleBtn = $("toggleBtn");
-    const copyBtn = $("copyBtn");
     let unlocked = false;
     let holdMs = 3000;
 
@@ -112,7 +112,8 @@ if (location.href.includes("general")) {
         const hold = await getDoc(doc(db, "config", "relayHoldTime"));
         if (hold.exists()) holdMs = hold.data().ms || holdMs;
 
-        const stateDoc = doc(db, "config", "relaystate");
+        const toggleRef = ref(rtdb, "esp/toggle");
+
         toggleBtn.addEventListener("click", async () => {
           if (unlocked) return;
           unlocked = true;
@@ -121,7 +122,7 @@ if (location.href.includes("general")) {
           toggleBtn.classList.add("bg-green-600");
           toggleBtn.disabled = true;
           try {
-            await setDoc(stateDoc, { state: "unlocked" });
+            await set(toggleRef, "unlocked");
           } catch {
             showNotif("Failed to update relay state");
           }
@@ -132,26 +133,12 @@ if (location.href.includes("general")) {
             toggleBtn.classList.add("bg-red-600");
             toggleBtn.disabled = false;
             try {
-              await setDoc(stateDoc, { state: "locked" });
+              await set(toggleRef, "locked");
             } catch {
               showNotif("Failed to update relay state");
             }
           }, holdMs);
         });
-
-        if (role === "sub") {
-          copyBtn.classList.remove("hidden");
-          copyBtn.onclick = async () => {
-            const newToken = uuidv4();
-            await setDoc(doc(db, "registerTokens", newToken), {
-              createdAt: serverTimestamp(),
-              used: false
-            });
-            const url = `${location.origin}/register.html?token=${newToken}`;
-            await navigator.clipboard.writeText(url);
-            showNotif("Token copied:\n" + url);
-          };
-        }
       }
     });
   });
@@ -227,5 +214,5 @@ window.logout = async () => {
 };
 
 window.deleteAccount = () => {
-  showNotif("Account deletion coming soon");
+  showNotif("Account deletion not implemented yet");
 };
