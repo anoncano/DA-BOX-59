@@ -93,47 +93,55 @@ if (location.pathname.includes("register.html")) {
 }
 
 // General Panel Logic
-if (location.pathname.includes("general.html")) {
-  const toggleBtn = $("toggleBtn");
-  let unlocked = false;
-  let holdMs = 3000;
+if (location.pathname.includes("general.html") || location.href.includes("general")) {
+  window.addEventListener("DOMContentLoaded", () => {
+    const toggleBtn = $("toggleBtn");
+    const copyBtn = $("copyBtn");
+    let unlocked = false;
+    let holdMs = 3000;
 
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) location.href = "index.html";
-    const snap = await getDoc(doc(db, "users", user.uid));
-    const role = snap.data()?.role;
-    if (role !== "admin") {
-      const hold = await getDoc(doc(db, "config", "relayHoldTime"));
-      if (hold.exists()) holdMs = hold.data().ms || holdMs;
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) return location.href = "index.html";
 
-      toggleBtn.onclick = () => {
-        if (unlocked) return;
-        unlocked = true;
-        toggleBtn.textContent = "UNLOCKED";
-        toggleBtn.classList.replace("bg-red-600", "bg-green-600");
-        toggleBtn.disabled = true;
-        setTimeout(() => {
-          unlocked = false;
-          toggleBtn.textContent = "LOCKED";
-          toggleBtn.classList.replace("bg-green-600", "bg-red-600");
-          toggleBtn.disabled = false;
-        }, holdMs);
-      };
+      const snap = await getDoc(doc(db, "users", user.uid));
+      const role = snap.data()?.role;
 
-      if (role === "sub") {
-        $("copyBtn").classList.remove("hidden");
-        $("copyBtn").onclick = async () => {
-          const newToken = uuidv4();
-          await setDoc(doc(db, "registerTokens", newToken), {
-            createdAt: serverTimestamp(), used: false
-          });
-          const url = `${location.origin}/register.html?token=${newToken}`;
-          await navigator.clipboard.writeText(url);
-          showNotif("Token copied:\n" + url);
+      if (role !== "admin") {
+        const hold = await getDoc(doc(db, "config", "relayHoldTime"));
+        if (hold.exists()) holdMs = hold.data().ms || holdMs;
+
+        toggleBtn.onclick = () => {
+          if (unlocked) return;
+          unlocked = true;
+          toggleBtn.textContent = "UNLOCKED";
+          toggleBtn.classList.replace("bg-red-600", "bg-green-600");
+          toggleBtn.disabled = true;
+          setTimeout(() => {
+            unlocked = false;
+            toggleBtn.textContent = "LOCKED";
+            toggleBtn.classList.replace("bg-green-600", "bg-red-600");
+            toggleBtn.disabled = false;
+          }, holdMs);
         };
+
+        if (role === "sub") {
+          copyBtn.classList.remove("hidden");
+          copyBtn.onclick = async () => {
+            const newToken = uuidv4();
+            await setDoc(doc(db, "registerTokens", newToken), {
+              createdAt: serverTimestamp(),
+              used: false
+            });
+            const url = `${location.origin}/register.html?token=${newToken}`;
+            await navigator.clipboard.writeText(url);
+            showNotif("Token copied:\n" + url);
+          };
+        }
       }
-    }
+    });
   });
+}
+
 }
 
 // Admin Panel Logic
