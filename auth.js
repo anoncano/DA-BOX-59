@@ -5,7 +5,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore, doc, setDoc, getDoc, updateDoc,
-  collection, getDocs, serverTimestamp
+  collection, getDocs, serverTimestamp, addDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getFunctions } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -103,6 +103,12 @@ if (location.href.includes("general")) {
   window.addEventListener("DOMContentLoaded", () => {
     const toggleBtn = $("toggleBtn");
     const copyBtn = $("copyBtn");
+    const offlineBtn = $("offlineBtn");
+    const errorBtn = $("errorBtn");
+    const modal = $("errorModal");
+    const errorText = $("errorText");
+    const cancelError = $("cancelError");
+    const sendError = $("sendError");
     let unlocked = false;
     let holdMs = 3000;
 
@@ -166,6 +172,29 @@ if (location.href.includes("general")) {
             showNotif("Token copied:\n" + url);
           };
         }
+
+        offlineBtn.onclick = async () => {
+          const code = uuidv4();
+          await navigator.clipboard.writeText(code);
+          showNotif("Offline code copied:\n" + code);
+        };
+
+        errorBtn.onclick = () => {
+          modal.classList.remove("hidden");
+          errorText.value = "";
+        };
+        cancelError.onclick = () => modal.classList.add("hidden");
+        sendError.onclick = async () => {
+          const msg = errorText.value.trim();
+          if (!msg) return;
+          await addDoc(collection(db, "errors"), {
+            message: msg,
+            user: user.uid,
+            createdAt: serverTimestamp()
+          });
+          modal.classList.add("hidden");
+          showNotif("Issue reported");
+        };
       }
     });
   });

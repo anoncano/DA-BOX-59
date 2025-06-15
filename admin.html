@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DaBox Admin Panel</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>#toast { transition: opacity 0.3s; } .hidden { opacity: 0; }</style>
+  <style>#toast { transition: opacity 0.3s; } .hidden { opacity: 0; } body{font-family:system-ui,sans-serif; }</style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen p-4 sm:p-6 flex items-center justify-center">
   <div class="w-full max-w-xl space-y-6">
@@ -30,6 +30,8 @@
     </div>
 
     <div id="userList" class="space-y-2"></div>
+    <h2 class="text-xl mt-6">Error Reports</h2>
+    <div id="errorList" class="space-y-2"></div>
   </div>
 
   <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded hidden"></div>
@@ -130,6 +132,16 @@
           showNotif(`Role updated to ${sel.value}`);
         };
         $("userList").appendChild(row);
+      });
+
+      const snapErr = await getDocs(collection(db, "errors"));
+      snapErr.forEach(errSnap => {
+        const e = errSnap.data();
+        const item = document.createElement("div");
+        item.className = "p-2 bg-gray-700 rounded";
+        const ts = e.createdAt?.toDate().toLocaleString() || "";
+        item.textContent = `${ts} - ${e.message}`;
+        $("errorList").appendChild(item);
       });
     });
   </script>
