@@ -52,7 +52,8 @@ The large toggle on the general panel now updates the `config/relaystate`
 document in Firestore **and** the `relaystate` node in the Realtime Database
 (located at `https://da-box-59-default-rtdb.asia-southeast1.firebasedatabase.app`)
 as well as the legacy endpoint `https://da-box-59.firebaseio.com` for
-compatibility.
+compatibility. The app falls back to whichever database responds
+successfully when updating state.
 When pressed it sets the state to `unlocked` and reverts to `locked` after the
 admin-defined relay hold time. Authenticated users can now update these values
 as specified in `firestore.rules`. The interface uses

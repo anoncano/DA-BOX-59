@@ -128,13 +128,12 @@ if (location.href.includes("general")) {
           toggleBtn.classList.remove("bg-red-600");
           toggleBtn.classList.add("bg-green-600");
           toggleBtn.disabled = true;
-          try {
-            await Promise.all([
-              setDoc(stateDoc, { state: "unlocked" }),
-              set(ref(rtdb, "relaystate"), "unlocked"),
-              set(ref(rtdbLegacy, "relaystate"), "unlocked")
-            ]);
-          } catch {
+          const res1 = await Promise.allSettled([
+            setDoc(stateDoc, { state: "unlocked" }),
+            set(ref(rtdb, "relaystate"), "unlocked"),
+            set(ref(rtdbLegacy, "relaystate"), "unlocked")
+          ]);
+          if (res1.every(r => r.status === "rejected")) {
             showNotif("Failed to update relay state");
           }
           setTimeout(async () => {
@@ -143,13 +142,12 @@ if (location.href.includes("general")) {
             toggleBtn.classList.remove("bg-green-600");
             toggleBtn.classList.add("bg-red-600");
             toggleBtn.disabled = false;
-            try {
-              await Promise.all([
-                setDoc(stateDoc, { state: "locked" }),
-                set(ref(rtdb, "relaystate"), "locked"),
-                set(ref(rtdbLegacy, "relaystate"), "locked")
-              ]);
-            } catch {
+            const res2 = await Promise.allSettled([
+              setDoc(stateDoc, { state: "locked" }),
+              set(ref(rtdb, "relaystate"), "locked"),
+              set(ref(rtdbLegacy, "relaystate"), "locked")
+            ]);
+            if (res2.every(r => r.status === "rejected")) {
               showNotif("Failed to update relay state");
             }
           }, holdMs);
