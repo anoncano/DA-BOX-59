@@ -43,7 +43,7 @@
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import {
       getFirestore, doc, setDoc, getDoc, updateDoc,
-      collection, getDocs, serverTimestamp
+      collection, getDocs, serverTimestamp, deleteDoc
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
     import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
     import { v4 as uuidv4 } from "https://jspm.dev/uuid";
@@ -145,9 +145,20 @@
       snapErr.forEach(errSnap => {
         const e = errSnap.data();
         const item = document.createElement("div");
-        item.className = "p-2 bg-gray-700 rounded";
+        item.className = "p-2 bg-gray-700 rounded flex justify-between items-start";
+        const span = document.createElement("span");
         const ts = e.createdAt?.toDate().toLocaleString() || "";
-        item.textContent = `${ts} - ${e.message}`;
+        span.textContent = `${ts} - ${e.message}`;
+        const del = document.createElement("button");
+        del.className = "text-red-400 hover:underline ml-2";
+        del.textContent = "Delete";
+        del.onclick = async () => {
+          await deleteDoc(doc(db, "errors", errSnap.id));
+          item.remove();
+          showNotif("Report deleted");
+        };
+        item.appendChild(span);
+        item.appendChild(del);
         $("errorList").appendChild(item);
       });
     });

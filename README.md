@@ -15,5 +15,7 @@ This app provides a simple interface for unlocking and locking a relay using Fir
    Then open `index.html` in your browser.
 - The large toggle on the **General** panel switches between locked and unlocked, updating Firestore and the Realtime Database.
 - **Report Issue** opens a form so users can submit feedback. Reports show up for admins on their panel.
+- Admins can remove reports directly from the error list.
+- Sub users can generate invitation links via **Copy Token** on the general panel.
 - The `esp32_relay_watch.ino` sketch demonstrates how an ESP32 watches the database and resets the relay after the configured hold time.
 Replace the Firebase configuration in `auth.js` with your own project details before deploying.
