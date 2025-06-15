@@ -102,6 +102,7 @@ if (location.href.includes("general")) {
     const toggleBtn = $("toggleBtn");
     let unlocked = false;
     let holdMs = 3000;
+    const toggleRef = ref(rtdb, "esp/toggle");
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) return location.href = "index.html";
@@ -109,36 +110,55 @@ if (location.href.includes("general")) {
       const role = snap.data()?.role;
 
       if (role !== "admin") {
-        const hold = await getDoc(doc(db, "config", "relayHoldTime"));
-        if (hold.exists()) holdMs = hold.data().ms || holdMs;
+        try {
+          const holdSnap = await getDoc(doc(db, "config", "relayHoldTime"));
+          if (holdSnap.exists()) holdMs = holdSnap.data().ms || holdMs;
+        } catch {
+          // fallback to default holdMs
+        }
 
-        const toggleRef = ref(rtdb, "esp/toggle");
+        // Initialize button UI
+        unlocked = false;
+        toggleBtn.textContent = "LOCKED";
+        toggleBtn.classList.remove("bg-green-600");
+        toggleBtn.classList.add("bg-red-600");
+        toggleBtn.disabled = false;
 
-        toggleBtn.addEventListener("click", async () => {
+        toggleBtn.onclick = async () => {
           if (unlocked) return;
           unlocked = true;
+
           toggleBtn.textContent = "UNLOCKED";
           toggleBtn.classList.remove("bg-red-600");
           toggleBtn.classList.add("bg-green-600");
           toggleBtn.disabled = true;
+
           try {
             await set(toggleRef, "unlocked");
           } catch {
             showNotif("Failed to update relay state");
-          }
-          setTimeout(async () => {
             unlocked = false;
             toggleBtn.textContent = "LOCKED";
             toggleBtn.classList.remove("bg-green-600");
             toggleBtn.classList.add("bg-red-600");
             toggleBtn.disabled = false;
+            return;
+          }
+
+          setTimeout(async () => {
             try {
               await set(toggleRef, "locked");
             } catch {
               showNotif("Failed to update relay state");
             }
+
+            unlocked = false;
+            toggleBtn.textContent = "LOCKED";
+            toggleBtn.classList.remove("bg-green-600");
+            toggleBtn.classList.add("bg-red-600");
+            toggleBtn.disabled = false;
           }, holdMs);
-        });
+        };
       }
     });
   });
