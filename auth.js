@@ -20,7 +20,6 @@ const firebaseConfig = {
   appId: "1:382682873063:web:e240e1bf8e14527b277642"
 };
 
-
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -102,6 +101,7 @@ if (location.href.includes("register")) {
 if (location.href.includes("general")) {
   window.addEventListener("DOMContentLoaded", () => {
     const toggleBtn = $("toggleBtn");
+    const copyBtn = $("copyBtn");
     let unlocked = false;
     let holdMs = 3000;
     const toggleRef = ref(rtdb, "esp/toggle");
@@ -119,7 +119,7 @@ if (location.href.includes("general")) {
           // fallback to default holdMs
         }
 
-        // Initialize button UI
+        // Initialize button UI state
         unlocked = false;
         toggleBtn.textContent = "LOCKED";
         toggleBtn.classList.remove("bg-green-600");
@@ -139,6 +139,7 @@ if (location.href.includes("general")) {
             await set(toggleRef, "unlocked");
           } catch {
             showNotif("Failed to update relay state");
+            // revert UI on failure
             unlocked = false;
             toggleBtn.textContent = "LOCKED";
             toggleBtn.classList.remove("bg-green-600");
@@ -153,7 +154,7 @@ if (location.href.includes("general")) {
             } catch {
               showNotif("Failed to update relay state");
             }
-
+            // reset UI state
             unlocked = false;
             toggleBtn.textContent = "LOCKED";
             toggleBtn.classList.remove("bg-green-600");
@@ -161,6 +162,20 @@ if (location.href.includes("general")) {
             toggleBtn.disabled = false;
           }, holdMs);
         };
+
+        if (role === "sub") {
+          copyBtn.classList.remove("hidden");
+          copyBtn.onclick = async () => {
+            const newToken = uuidv4();
+            await setDoc(doc(db, "registerTokens", newToken), {
+              createdAt: serverTimestamp(),
+              used: false
+            });
+            const url = `${location.origin}/register.html?token=${newToken}`;
+            await navigator.clipboard.writeText(url);
+            showNotif("Token copied:\n" + url);
+          };
+        }
       }
     });
   });
@@ -236,5 +251,5 @@ window.logout = async () => {
 };
 
 window.deleteAccount = () => {
-  showNotif("Account deletion not implemented yet");
+  showNotif("Account deletion coming soon");
 };
