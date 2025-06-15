@@ -8,6 +8,7 @@ import {
   collection, getDocs, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getFunctions } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
+import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 import { v4 as uuidv4 } from "https://jspm.dev/uuid";
 
 const firebaseConfig = {
@@ -16,13 +17,15 @@ const firebaseConfig = {
   projectId: "da-box-59",
   storageBucket: "da-box-59.firebasestorage.app",
   messagingSenderId: "382682873063",
-  appId: "1:382682873063:web:e240e1bf8e14527b277642"
+  appId: "1:382682873063:web:e240e1bf8e14527b277642",
+  databaseURL: "https://da-box-59.firebaseio.com"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const functions = getFunctions(app);
+const rtdb = getDatabase(app);
 const $ = (id) => document.getElementById(id);
 const showNotif = (msg) => {
   const el = $("toast");
@@ -113,6 +116,19 @@ if (location.href.includes("general")) {
         if (hold.exists()) holdMs = hold.data().ms || holdMs;
 
         const stateDoc = doc(db, "config", "relaystate");
+
+        const updateRelay = async (val) => {
+          try {
+            await Promise.all([
+              setDoc(stateDoc, { state: val }),
+              set(ref(rtdb, "relaystate"), val)
+            ]);
+            return true;
+          } catch {
+            return false;
+          }
+        };
+
         toggleBtn.addEventListener("click", async () => {
           if (unlocked) return;
           unlocked = true;
@@ -120,9 +136,8 @@ if (location.href.includes("general")) {
           toggleBtn.classList.remove("bg-red-600");
           toggleBtn.classList.add("bg-green-600");
           toggleBtn.disabled = true;
-          try {
-            await setDoc(stateDoc, { state: "unlocked" });
-          } catch {
+          const ok1 = await updateRelay("unlocked");
+          if (!ok1) {
             showNotif("Failed to update relay state");
           }
           setTimeout(async () => {
@@ -131,9 +146,8 @@ if (location.href.includes("general")) {
             toggleBtn.classList.remove("bg-green-600");
             toggleBtn.classList.add("bg-red-600");
             toggleBtn.disabled = false;
-            try {
-              await setDoc(stateDoc, { state: "locked" });
-            } catch {
+            const ok2 = await updateRelay("locked");
+            if (!ok2) {
               showNotif("Failed to update relay state");
             }
           }, holdMs);
