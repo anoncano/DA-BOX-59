@@ -126,10 +126,14 @@ if (location.href.includes("general")) {
 
         const updateRelay = async (val) => {
           try {
-            await Promise.all([
+            const tasks = [
               setDoc(stateDoc, { state: val }),
               set(ref(rtdb, "relaystate"), val)
-            ]);
+            ];
+            if (val === "unlocked") {
+              tasks.push(set(ref(rtdb, "relayHoldTime/ms"), holdMs));
+            }
+            await Promise.all(tasks);
             return true;
           } catch {
             return false;
