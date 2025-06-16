@@ -16,7 +16,7 @@
 #define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
 
 #define API_KEY "AIzaSyDF_BGAKz4NbsZPZmAcJofaYsccxtIIQ_o"
-#define DATABASE_URL "https://da-box-59.firebaseio.com"
+#define DATABASE_URL "https://da-box-59-default-rtdb.asia-southeast1.firebasedatabase.app"
 
 FirebaseData fbdo;
 FirebaseAuth auth;
