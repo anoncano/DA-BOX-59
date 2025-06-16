@@ -18,4 +18,5 @@ This app provides a simple interface for unlocking and locking a relay using Fir
 - Admins can remove reports directly from the error list.
 - Sub users can generate invitation links via **Copy Token** on the general panel.
 - The `esp32_relay_watch.ino` sketch demonstrates how an ESP32 watches the database and resets the relay after the configured hold time.
+- Relay hold time saved from the admin panel is also stored in the Realtime Database at `/relayHoldTime/ms` so hardware clients can read it.
 Replace the Firebase configuration in `auth.js` with your own project details before deploying.
