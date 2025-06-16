@@ -248,8 +248,16 @@ if (location.href.includes("admin")) {
 
     window.saveRelayHold = async () => {
       const val = parseInt($("relayHoldTime").value);
-      if (!isNaN(val)) await setDoc(doc(db, "config", "relayHoldTime"), { ms: val });
-      showNotif("Saved relay hold time");
+      if (isNaN(val)) return showNotif("Enter a valid number");
+      try {
+        await Promise.all([
+          setDoc(doc(db, "config", "relayHoldTime"), { ms: val }),
+          set(ref(rtdb, "relayHoldTime/ms"), val)
+        ]);
+        showNotif("Saved relay hold time");
+      } catch {
+        showNotif("Failed to save relay hold time");
+      }
     };
 
     window.generateToken = async () => {
