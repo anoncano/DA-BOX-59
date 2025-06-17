@@ -29,6 +29,13 @@
     </div>
   </div>
 
+  <div id="offlineModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden">
+    <div class="bg-gray-800 p-4 rounded space-y-4 w-full max-w-md text-center">
+      <p>Connect to <b>DaBox-AP</b> and open <code>http://192.168.4.1/unlock?token=YOUR_CODE</code></p>
+      <button id="closeOffline" class="bg-blue-600 px-4 py-2 rounded w-full">Got it</button>
+    </div>
+  </div>
+
   <script type="module" src="auth.js"></script>
 </body>
 </html>

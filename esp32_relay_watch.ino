@@ -12,6 +12,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <Firebase_ESP_Client.h>
+#include <vector>
 
 #define WIFI_SSID "YOUR_WIFI_SSID"
 #define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
@@ -32,6 +33,23 @@ unsigned long unlockStart = 0;
 const int RELAY_PIN = 13;
 WebServer server(80);
 bool apMode = false;
+std::vector<String> offlineTokens;
+unsigned long lastTokenFetch = 0;
+
+void fetchOfflineTokens() {
+  if (WiFi.status() != WL_CONNECTED) return;
+  if (Firebase.RTDB.getJSON(&fbdo, "/offlineTokens")) {
+    FirebaseJson &json = fbdo.jsonObject();
+    offlineTokens.clear();
+    FirebaseJsonData data;
+    size_t count = json.iteratorBegin();
+    for (size_t i = 0; i < count; i++) {
+      json.iteratorGet(i, data);
+      offlineTokens.push_back(String(data.key));
+    }
+    json.iteratorEnd();
+  }
+}
 
 void startAP() {
   WiFi.softAP(AP_SSID, AP_PASSWORD);
@@ -42,6 +60,15 @@ void startAP() {
       "<h1>DaBox Offline</h1><a href='/unlock'>Unlock</a>");
   });
   server.on("/unlock", []() {
+    String tok = server.arg("token");
+    bool valid = false;
+    for (const auto &t : offlineTokens) {
+      if (t == tok) { valid = true; break; }
+    }
+    if (!valid) {
+      server.send(403, "text/plain", "Invalid token");
+      return;
+    }
     if (!unlocked) {
       unlocked = true;
       digitalWrite(RELAY_PIN, HIGH);
@@ -77,10 +104,15 @@ void setup() {
   if (!apMode) {
     Firebase.begin(&config, &auth);
     Firebase.reconnectWiFi(true);
+    fetchOfflineTokens();
   }
 }
 
 void loop() {
+  if (!apMode && WiFi.status() == WL_CONNECTED && millis() - lastTokenFetch > 60000) {
+    lastTokenFetch = millis();
+    fetchOfflineTokens();
+  }
   if (!apMode && WiFi.status() == WL_CONNECTED &&
       Firebase.RTDB.getString(&fbdo, "/relaystate")) {
     String state = fbdo.stringData();

@@ -107,6 +107,8 @@ if (location.href.includes("general")) {
     const offlineBtn = $("offlineBtn");
     const errorBtn = $("errorBtn");
     const modal = $("errorModal");
+    const offlineModal = $("offlineModal");
+    const closeOffline = $("closeOffline");
     const errorText = $("errorText");
     const cancelError = $("cancelError");
     const sendError = $("sendError");
@@ -180,9 +182,17 @@ if (location.href.includes("general")) {
 
         offlineBtn.onclick = async () => {
           const code = uuidv4();
-          await navigator.clipboard.writeText(code);
-          showNotif("Offline code copied:\n" + code);
+          try {
+            await set(ref(rtdb, "offlineTokens/" + code), true);
+            await navigator.clipboard.writeText(code);
+            showNotif("Offline code copied:\n" + code);
+            offlineModal.classList.remove("hidden");
+          } catch {
+            showNotif("Failed to save offline code");
+          }
         };
+
+        closeOffline.onclick = () => offlineModal.classList.add("hidden");
 
         errorBtn.onclick = () => {
           modal.classList.remove("hidden");
