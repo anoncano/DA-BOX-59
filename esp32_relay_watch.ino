@@ -10,10 +10,14 @@
 */
 
 #include <WiFi.h>
+#include <WebServer.h>
 #include <Firebase_ESP_Client.h>
 
 #define WIFI_SSID "YOUR_WIFI_SSID"
 #define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
+
+#define AP_SSID "DaBox-AP"
+#define AP_PASSWORD "daboxpass"
 
 #define API_KEY "AIzaSyDF_BGAKz4NbsZPZmAcJofaYsccxtIIQ_o"
 #define DATABASE_URL "https://da-box-59-default-rtdb.asia-southeast1.firebasedatabase.app"
@@ -26,27 +30,59 @@ unsigned long holdTimeMs = 3000;
 bool unlocked = false;
 unsigned long unlockStart = 0;
 const int RELAY_PIN = 13;
+WebServer server(80);
+bool apMode = false;
+
+void startAP() {
+  WiFi.softAP(AP_SSID, AP_PASSWORD);
+  Serial.print("Started AP at ");
+  Serial.println(WiFi.softAPIP());
+  server.on("/", []() {
+    server.send(200, "text/html",
+      "<h1>DaBox Offline</h1><a href='/unlock'>Unlock</a>");
+  });
+  server.on("/unlock", []() {
+    if (!unlocked) {
+      unlocked = true;
+      digitalWrite(RELAY_PIN, HIGH);
+      unlockStart = millis();
+    }
+    server.send(200, "text/plain", "Unlocking");
+  });
+  server.begin();
+}
 
 void setup() {
   Serial.begin(115200);
   pinMode(RELAY_PIN, OUTPUT);
   digitalWrite(RELAY_PIN, LOW);
+  WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.print("Connecting to WiFi");
-  while (WiFi.status() != WL_CONNECTED) {
+  unsigned long start = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - start < 10000) {
     delay(500);
     Serial.print('.');
   }
-  Serial.println(" connected");
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println(" connected");
+  } else {
+    Serial.println(" failed");
+    apMode = true;
+    startAP();
+  }
 
   config.api_key = API_KEY;
   config.database_url = DATABASE_URL;
-  Firebase.begin(&config, &auth);
-  Firebase.reconnectWiFi(true);
+  if (!apMode) {
+    Firebase.begin(&config, &auth);
+    Firebase.reconnectWiFi(true);
+  }
 }
 
 void loop() {
-  if (Firebase.RTDB.getString(&fbdo, "/relaystate")) {
+  if (!apMode && WiFi.status() == WL_CONNECTED &&
+      Firebase.RTDB.getString(&fbdo, "/relaystate")) {
     String state = fbdo.stringData();
     if (state == "unlocked" && !unlocked) {
       unlocked = true;
@@ -63,7 +99,13 @@ void loop() {
     unlocked = false;
     Serial.println("Locking");
     digitalWrite(RELAY_PIN, LOW);
-    Firebase.RTDB.setString(&fbdo, "/relaystate", "locked");
+    if (!apMode && WiFi.status() == WL_CONNECTED) {
+      Firebase.RTDB.setString(&fbdo, "/relaystate", "locked");
+    }
+  }
+
+  if (apMode) {
+    server.handleClient();
   }
 
   delay(200);
