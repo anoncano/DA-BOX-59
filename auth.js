@@ -8,7 +8,7 @@ import {
   collection, getDocs, serverTimestamp, addDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getFunctions } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
-import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 import { v4 as uuidv4 } from "https://jspm.dev/uuid";
 
 const firebaseConfig = {
@@ -114,6 +114,7 @@ if (location.href.includes("general")) {
     const errorText = $("errorText");
     const cancelError = $("cancelError");
     const sendError = $("sendError");
+    const hbStatus = $("hbStatus");
     let unlocked = false;
     let medUnlocked = false;
     let holdMs = 3000;
@@ -127,6 +128,21 @@ if (location.href.includes("general")) {
       if (role !== "admin") {
         const hold = await getDoc(doc(db, "config", "relayHoldTime"));
         if (hold.exists()) holdMs = hold.data().ms || holdMs;
+
+        let hbLast = 0;
+        onValue(ref(rtdb, "heartbeat"), () => {
+          hbLast = Date.now();
+          hbStatus.textContent = "Device online";
+          hbStatus.classList.remove("text-red-400");
+          hbStatus.classList.add("text-green-400");
+        });
+        setInterval(() => {
+          if (Date.now() - hbLast > 15000) {
+            hbStatus.textContent = "Device offline";
+            hbStatus.classList.remove("text-green-400");
+            hbStatus.classList.add("text-red-400");
+          }
+        }, 5000);
 
         const stateDoc = doc(db, "config", "relaystate");
         const medStateDoc = doc(db, "config", "medRelaystate");
