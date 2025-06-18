@@ -208,10 +208,7 @@ if (location.href.includes("general")) {
           unlocked = true;
           const ok1 = await updateRelay("unlocked");
           if (!ok1) showNotif("Failed to update relay state");
-          setTimeout(async () => {
-            const ok2 = await updateRelay("locked");
-            if (!ok2) showNotif("Failed to update relay state");
-          }, holdMs);
+          // ESP will update the locked state after the hold time
         });
 
         if (rolesArr.includes("med")) {
@@ -221,10 +218,7 @@ if (location.href.includes("general")) {
             medUnlocked = true;
             const ok1 = await updateMedRelay("unlocked");
             if (!ok1) showNotif("Failed to update med state");
-            setTimeout(async () => {
-              const ok2 = await updateMedRelay("locked");
-              if (!ok2) showNotif("Failed to update med state");
-            }, holdMs);
+            // ESP will update the locked state after the hold time
           });
         }
 
