@@ -36,6 +36,7 @@ unsigned long lastTokenFetch = 0;
 WebServer server(80);
 bool apMode = false;
 std::vector<String> offlineTokens;
+const char* offlinePage = "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'><style>body{font-family:sans-serif;text-align:center;padding-top:20px}</style></head><body><h1>DaBox Offline</h1><form action='/unlock'><input name='token' placeholder='Token'><button type='submit'>Unlock</button></form></body></html>";
 
 void fetchOfflineTokens() {
   if (WiFi.status() != WL_CONNECTED) return;
@@ -61,6 +62,7 @@ void startAP() {
   WiFi.softAP(AP_SSID, AP_PASSWORD);
   Serial.print("Started AP at ");
   Serial.println(WiFi.softAPIP());
+  server.on("/", [](){ server.send(200, "text/html", offlinePage); });
   server.on("/unlock", []() {
     String tok = server.arg("token");
     bool valid = false;
@@ -78,7 +80,7 @@ void startAP() {
     }
     server.send(200, "text/plain", "Unlocking");
   });
-  server.onNotFound([](){ server.send(200, "text/html", "<h1>DaBox Offline</h1>"); });
+  server.onNotFound([](){ server.send(200, "text/html", offlinePage); });
   server.begin();
 }
 

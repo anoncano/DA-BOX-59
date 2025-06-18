@@ -111,6 +111,8 @@ if (location.href.includes("general")) {
     const modal = $("errorModal");
     const offlineModal = $("offlineModal");
     const closeOffline = $("closeOffline");
+    const launchOffline = $("launchOffline");
+    const offlineCodeInput = $("offlineCodeInput");
     const errorText = $("errorText");
     const cancelError = $("cancelError");
     const sendError = $("sendError");
@@ -118,6 +120,8 @@ if (location.href.includes("general")) {
     let unlocked = false;
     let medUnlocked = false;
     let holdMs = 3000;
+    let offlineCode = "";
+    let offlineShown = false;
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) return location.href = "index.html";
@@ -135,12 +139,19 @@ if (location.href.includes("general")) {
           hbStatus.textContent = "Device online";
           hbStatus.classList.remove("text-red-400");
           hbStatus.classList.add("text-green-400");
+          offlineShown = false;
+          offlineModal.classList.add("hidden");
         });
         setInterval(() => {
           if (Date.now() - hbLast > 15000) {
             hbStatus.textContent = "Device offline";
             hbStatus.classList.remove("text-green-400");
             hbStatus.classList.add("text-red-400");
+            if (!offlineShown) {
+              offlineShown = true;
+              offlineCodeInput.value = offlineCode;
+              offlineModal.classList.remove("hidden");
+            }
           }
         }, 5000);
 
@@ -237,6 +248,8 @@ if (location.href.includes("general")) {
           try {
             await set(ref(rtdb, "offlineTokens/" + code), true);
             await navigator.clipboard.writeText(code);
+            offlineCode = code;
+            offlineCodeInput.value = code;
             showNotif("Offline code copied:\n" + code);
             offlineModal.classList.remove("hidden");
           } catch {
@@ -244,7 +257,14 @@ if (location.href.includes("general")) {
           }
         };
 
-        closeOffline.onclick = () => offlineModal.classList.add("hidden");
+        closeOffline.onclick = () => {
+          offlineModal.classList.add("hidden");
+          offlineShown = false;
+        };
+        launchOffline.onclick = () => {
+          const tok = offlineCodeInput.value.trim();
+          if (tok) window.open(`http://192.168.4.1/unlock?token=${encodeURIComponent(tok)}`, "_blank");
+        };
 
         errorBtn.onclick = () => {
           modal.classList.remove("hidden");
