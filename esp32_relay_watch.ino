@@ -33,10 +33,28 @@ int holdTime = 200;
 unsigned long lastCheck = 0;
 unsigned long lastHeartbeat = 0;
 unsigned long lastTokenFetch = 0;
+unsigned long lastWiFiCheck = 0;
+bool wifiConnected = false;
 WebServer server(80);
 bool apMode = false;
 std::vector<String> offlineTokens;
 const char* offlinePage = "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'><style>body{font-family:sans-serif;text-align:center;padding-top:20px}</style></head><body><h1>DaBox Offline</h1><form action='/unlock'><input name='token' placeholder='Token'><button type='submit'>Unlock</button></form></body></html>";
+
+bool connectWiFi(unsigned long timeout = 10000) {
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  Serial.print("Connecting");
+  unsigned long start = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - start < timeout) {
+    Serial.print('.');
+    delay(500);
+  }
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\n✅ WiFi Connected");
+    return true;
+  }
+  Serial.println("\n❌ WiFi Failed");
+  return false;
+}
 
 void fetchOfflineTokens() {
   if (WiFi.status() != WL_CONNECTED) return;
@@ -62,6 +80,7 @@ void startAP() {
   WiFi.softAP(AP_SSID, AP_PASSWORD);
   Serial.print("Started AP at ");
   Serial.println(WiFi.softAPIP());
+  apMode = true;
   server.on("/", [](){ server.send(200, "text/html", offlinePage); });
   server.on("/unlock", []() {
     String tok = server.arg("token");
@@ -84,6 +103,13 @@ void startAP() {
   server.begin();
 }
 
+void stopAP() {
+  server.stop();
+  WiFi.softAPdisconnect(true);
+  apMode = false;
+  Serial.println("Stopped AP");
+}
+
 void setup() {
   Serial.begin(115200);
   pinMode(MAIN_RELAY_PIN, OUTPUT);
@@ -91,19 +117,10 @@ void setup() {
   digitalWrite(MAIN_RELAY_PIN, LOW);
   digitalWrite(MED_RELAY_PIN, LOW);
 
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  Serial.print("Connecting");
-  unsigned long start = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - start < 10000) {
-    Serial.print('.');
-    delay(500);
-  }
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\n✅ WiFi Connected");
+  wifiConnected = connectWiFi();
+  if (wifiConnected) {
     fetchOfflineTokens();
   } else {
-    Serial.println("\n❌ WiFi Failed");
-    apMode = true;
     startAP();
   }
 }
@@ -111,7 +128,23 @@ void setup() {
 void loop() {
   unsigned long now = millis();
 
-  if (!apMode && now - lastTokenFetch > 60000) {
+  if (now - lastWiFiCheck > 10000) {
+    lastWiFiCheck = now;
+    if (WiFi.status() != WL_CONNECTED) {
+      if (!apMode) {
+        wifiConnected = connectWiFi();
+        if (!wifiConnected) startAP();
+      } else if (connectWiFi()) {
+        stopAP();
+        fetchOfflineTokens();
+      }
+    } else if (apMode) {
+      stopAP();
+      fetchOfflineTokens();
+    }
+  }
+
+  if (!apMode && WiFi.status() == WL_CONNECTED && now - lastTokenFetch > 60000) {
     lastTokenFetch = now;
     fetchOfflineTokens();
   }
