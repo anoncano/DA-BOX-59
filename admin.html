@@ -129,19 +129,34 @@
         row.className = "p-2 bg-gray-700 rounded flex justify-between items-center";
         row.innerHTML = `
           <div>${u.name} → ${u.role}</div>
-          <select class="bg-gray-800 text-white rounded px-2 py-1">
-            <option value="general">general</option>
-            <option value="sub">sub</option>
-          </select>
+          <div class="flex items-center gap-2">
+            <select class="bg-gray-800 text-white rounded px-2 py-1">
+              <option value="general">general</option>
+              <option value="sub">sub</option>
+            </select>
+            <label class="flex items-center gap-1 text-sm">
+              <input type="checkbox" class="medChk" />
+              <span>Med</span>
+            </label>
+          </div>
         `;
         const sel = row.querySelector("select");
+        const medChk = row.querySelector(".medChk");
         sel.value = u.role;
         const label = row.querySelector("div");
-        sel.onchange = async () => {
-          await updateDoc(doc(db, "users", docSnap.id), { role: sel.value });
+        const roles = new Set(u.roles || []);
+        if (roles.has("med")) medChk.checked = true;
+        const updateUser = async () => {
+          medChk.checked ? roles.add("med") : roles.delete("med");
+          await updateDoc(doc(db, "users", docSnap.id), {
+            role: sel.value,
+            roles: Array.from(roles)
+          });
           label.textContent = `${u.name} → ${sel.value}`;
-          showNotif(`Role updated to ${sel.value}`);
+          showNotif("User updated");
         };
+        sel.onchange = updateUser;
+        medChk.onchange = updateUser;
         $("userList").appendChild(row);
       });
 

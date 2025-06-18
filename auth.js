@@ -86,7 +86,8 @@ if (location.href.includes("register")) {
         const cred = await createUserWithEmailAndPassword(auth, email, pass);
         await setDoc(doc(db, "users", cred.user.uid), {
           name,
-          role: "general"
+          role: "general",
+          roles: []
         });
         await updateDoc(doc(db, "registerTokens", token), { used: true });
         showNotif("Registration successful");
@@ -103,6 +104,7 @@ if (location.href.includes("register")) {
 if (location.href.includes("general")) {
   window.addEventListener("DOMContentLoaded", () => {
     const toggleBtn = $("toggleBtn");
+    const medToggle = $("medToggle");
     const copyBtn = $("copyBtn");
     const offlineBtn = $("offlineBtn");
     const errorBtn = $("errorBtn");
@@ -113,24 +115,43 @@ if (location.href.includes("general")) {
     const cancelError = $("cancelError");
     const sendError = $("sendError");
     let unlocked = false;
+    let medUnlocked = false;
     let holdMs = 3000;
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) return location.href = "index.html";
       const snap = await getDoc(doc(db, "users", user.uid));
       const role = snap.data()?.role;
+      const rolesArr = snap.data()?.roles || [];
 
       if (role !== "admin") {
         const hold = await getDoc(doc(db, "config", "relayHoldTime"));
         if (hold.exists()) holdMs = hold.data().ms || holdMs;
 
         const stateDoc = doc(db, "config", "relaystate");
+        const medStateDoc = doc(db, "config", "medRelaystate");
 
         const updateRelay = async (val) => {
           try {
             const tasks = [
               setDoc(stateDoc, { state: val }),
               set(ref(rtdb, "relaystate"), val)
+            ];
+            if (val === "unlocked") {
+              tasks.push(set(ref(rtdb, "relayHoldTime/ms"), holdMs));
+            }
+            await Promise.all(tasks);
+            return true;
+          } catch {
+            return false;
+          }
+        };
+
+        const updateMedRelay = async (val) => {
+          try {
+            const tasks = [
+              setDoc(medStateDoc, { state: val }),
+              set(ref(rtdb, "medRelaystate"), val)
             ];
             if (val === "unlocked") {
               tasks.push(set(ref(rtdb, "relayHoldTime/ms"), holdMs));
@@ -165,6 +186,29 @@ if (location.href.includes("general")) {
             }
           }, holdMs);
         });
+
+        if (rolesArr.includes("med")) {
+          medToggle.classList.remove("hidden");
+          medToggle.addEventListener("click", async () => {
+            if (medUnlocked) return;
+            medUnlocked = true;
+            medToggle.textContent = "MED UNLOCKED";
+            medToggle.classList.remove("bg-red-600");
+            medToggle.classList.add("bg-green-600");
+            medToggle.disabled = true;
+            const ok1 = await updateMedRelay("unlocked");
+            if (!ok1) showNotif("Failed to update med state");
+            setTimeout(async () => {
+              medUnlocked = false;
+              medToggle.textContent = "MED LOCKED";
+              medToggle.classList.remove("bg-green-600");
+              medToggle.classList.add("bg-red-600");
+              medToggle.disabled = false;
+              const ok2 = await updateMedRelay("locked");
+              if (!ok2) showNotif("Failed to update med state");
+            }, holdMs);
+          });
+        }
 
         if (role === "sub") {
           copyBtn.classList.remove("hidden");
