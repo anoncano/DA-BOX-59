@@ -132,6 +132,10 @@ if (location.href.includes("general")) {
       if (role !== "admin") {
         const hold = await getDoc(doc(db, "config", "relayHoldTime"));
         if (hold.exists()) holdMs = hold.data().ms || holdMs;
+        onValue(ref(rtdb, "relayHoldTime/ms"), s => {
+          const v = parseInt(s.val());
+          if (!isNaN(v)) holdMs = v;
+        });
 
         let hbLast = 0;
         onValue(ref(rtdb, "heartbeat"), () => {
@@ -157,6 +161,23 @@ if (location.href.includes("general")) {
 
         const stateDoc = doc(db, "config", "relaystate");
         const medStateDoc = doc(db, "config", "medRelaystate");
+
+        const applyState = (btn, on, offLabel, onLabel) => {
+          btn.textContent = on ? onLabel : offLabel;
+          btn.classList.toggle("bg-green-600", on);
+          btn.classList.toggle("bg-red-600", !on);
+          btn.disabled = on;
+        };
+
+        onValue(ref(rtdb, "relaystate"), s => {
+          unlocked = s.val() === "unlocked";
+          applyState(toggleBtn, unlocked, "LOCKED", "UNLOCKED");
+        });
+
+        onValue(ref(rtdb, "medRelaystate"), s => {
+          medUnlocked = s.val() === "unlocked";
+          applyState(medToggle, medUnlocked, "MED LOCKED", "MED UNLOCKED");
+        });
 
         const updateRelay = async (val) => {
           const tasks = [
@@ -185,24 +206,11 @@ if (location.href.includes("general")) {
         toggleBtn.addEventListener("click", async () => {
           if (unlocked) return;
           unlocked = true;
-          toggleBtn.textContent = "UNLOCKED";
-          toggleBtn.classList.remove("bg-red-600");
-          toggleBtn.classList.add("bg-green-600");
-          toggleBtn.disabled = true;
           const ok1 = await updateRelay("unlocked");
-          if (!ok1) {
-            showNotif("Failed to update relay state");
-          }
+          if (!ok1) showNotif("Failed to update relay state");
           setTimeout(async () => {
-            unlocked = false;
-            toggleBtn.textContent = "LOCKED";
-            toggleBtn.classList.remove("bg-green-600");
-            toggleBtn.classList.add("bg-red-600");
-            toggleBtn.disabled = false;
             const ok2 = await updateRelay("locked");
-            if (!ok2) {
-              showNotif("Failed to update relay state");
-            }
+            if (!ok2) showNotif("Failed to update relay state");
           }, holdMs);
         });
 
@@ -211,18 +219,9 @@ if (location.href.includes("general")) {
           medToggle.addEventListener("click", async () => {
             if (medUnlocked) return;
             medUnlocked = true;
-            medToggle.textContent = "MED UNLOCKED";
-            medToggle.classList.remove("bg-red-600");
-            medToggle.classList.add("bg-green-600");
-            medToggle.disabled = true;
             const ok1 = await updateMedRelay("unlocked");
             if (!ok1) showNotif("Failed to update med state");
             setTimeout(async () => {
-              medUnlocked = false;
-              medToggle.textContent = "MED LOCKED";
-              medToggle.classList.remove("bg-green-600");
-              medToggle.classList.add("bg-red-600");
-              medToggle.disabled = false;
               const ok2 = await updateMedRelay("locked");
               if (!ok2) showNotif("Failed to update med state");
             }, holdMs);
