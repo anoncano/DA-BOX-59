@@ -1,18 +1,17 @@
 /*
   esp32_relay_watch.ino
-  Monitors the Realtime Database for the relay state.
-  When `/relaystate` becomes "unlocked" it drives pin 13 HIGH. When
-  `/medRelaystate` is "unlocked" it drives pin 12 HIGH. The board waits for the
-  number of milliseconds stored at `/relayHoldTime/ms`, then sets the same pin
-  LOW and writes "locked" back to whichever path triggered it.
-
-  Requires the Firebase ESP Client library:
-  https://github.com/mobizt/Firebase-ESP-Client
+  Listens to the Firebase Realtime Database for two relay paths.
+  When `/relaystate` becomes "unlocked" it toggles pin 13.
+  When `/medRelaystate` becomes "unlocked" it toggles pin 12.
+  The board locks the relay again after `/relayHoldTime/ms` milliseconds.
+  If WiFi is unavailable, it starts an access point `DaBox-AP` so users can
+  unlock by visiting `http://192.168.4.1/unlock?token=YOUR_CODE` using an
+  offline token stored at `/offlineTokens`.
 */
 
 #include <WiFi.h>
 #include <WebServer.h>
-#include <Firebase_ESP_Client.h>
+#include <HTTPClient.h>
 #include <vector>
 
 #define WIFI_SSID "YOUR_WIFI_SSID"
@@ -21,64 +20,65 @@
 #define AP_SSID "DaBox-AP"
 #define AP_PASSWORD "daboxpass"
 
-#define API_KEY "AIzaSyDF_BGAKz4NbsZPZmAcJofaYsccxtIIQ_o"
-#define DATABASE_URL "https://da-box-59-default-rtdb.asia-southeast1.firebasedatabase.app"
+const char* FIREBASE_URL = "https://da-box-59-default-rtdb.asia-southeast1.firebasedatabase.app/";
+const int MAIN_RELAY_PIN = 13;
+const int MED_RELAY_PIN = 12;
 
-FirebaseData fbdo;
-FirebaseAuth auth;
-FirebaseConfig config;
+bool mainUnlocked = false;
+bool medUnlocked = false;
+unsigned long mainStart = 0;
+unsigned long medStart = 0;
+int holdTime = 200;
 
-unsigned long holdTimeMs = 3000;
-bool unlocked = false;
-unsigned long unlockStart = 0;
-const int MAIN_RELAY_PIN = 13; // primary relay
-const int MED_RELAY_PIN = 12;  // med relay
+unsigned long lastCheck = 0;
+unsigned long lastHeartbeat = 0;
+unsigned long lastTokenFetch = 0;
 WebServer server(80);
 bool apMode = false;
-bool medTrigger = false;
 std::vector<String> offlineTokens;
-unsigned long lastTokenFetch = 0;
 
 void fetchOfflineTokens() {
   if (WiFi.status() != WL_CONNECTED) return;
-  if (Firebase.RTDB.getJSON(&fbdo, "/offlineTokens")) {
-    FirebaseJson &json = fbdo.jsonObject();
+  HTTPClient http;
+  http.begin(String(FIREBASE_URL) + "offlineTokens.json");
+  int code = http.GET();
+  if (code == 200) {
+    String payload = http.getString();
     offlineTokens.clear();
-    FirebaseJsonData data;
-    size_t count = json.iteratorBegin();
-    for (size_t i = 0; i < count; i++) {
-      json.iteratorGet(i, data);
-      offlineTokens.push_back(String(data.key));
+    int pos = 0;
+    while ((pos = payload.indexOf('"', pos)) != -1) {
+      int end = payload.indexOf('"', pos + 1);
+      if (end == -1) break;
+      offlineTokens.push_back(payload.substring(pos + 1, end));
+      pos = payload.indexOf('"', end + 1);
+      if (pos == -1) break;
     }
-    json.iteratorEnd();
   }
+  http.end();
 }
 
 void startAP() {
   WiFi.softAP(AP_SSID, AP_PASSWORD);
   Serial.print("Started AP at ");
   Serial.println(WiFi.softAPIP());
-  server.on("/", []() {
-    server.send(200, "text/html",
-      "<h1>DaBox Offline</h1><a href='/unlock'>Unlock</a>");
-  });
   server.on("/unlock", []() {
     String tok = server.arg("token");
     bool valid = false;
-    for (const auto &t : offlineTokens) {
+    for (const auto& t : offlineTokens) {
       if (t == tok) { valid = true; break; }
     }
     if (!valid) {
       server.send(403, "text/plain", "Invalid token");
       return;
     }
-    if (!unlocked) {
-      unlocked = true;
+    if (!mainUnlocked && !medUnlocked) {
+      mainUnlocked = true;
       digitalWrite(MAIN_RELAY_PIN, HIGH);
-      unlockStart = millis();
+      mainStart = millis();
     }
     server.send(200, "text/plain", "Unlocking");
   });
+  server.onNotFound([](){ server.send(200, "text/html", "<h1>DaBox Offline</h1>"); });
   server.begin();
 }
 
@@ -88,81 +88,123 @@ void setup() {
   pinMode(MED_RELAY_PIN, OUTPUT);
   digitalWrite(MAIN_RELAY_PIN, LOW);
   digitalWrite(MED_RELAY_PIN, LOW);
-  WiFi.mode(WIFI_STA);
+
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  Serial.print("Connecting to WiFi");
+  Serial.print("Connecting");
   unsigned long start = millis();
   while (WiFi.status() != WL_CONNECTED && millis() - start < 10000) {
-    delay(500);
     Serial.print('.');
+    delay(500);
   }
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.println(" connected");
+    Serial.println("\n✅ WiFi Connected");
+    fetchOfflineTokens();
   } else {
-    Serial.println(" failed");
+    Serial.println("\n❌ WiFi Failed");
     apMode = true;
     startAP();
-  }
-
-  config.api_key = API_KEY;
-  config.database_url = DATABASE_URL;
-  if (!apMode) {
-    Firebase.begin(&config, &auth);
-    Firebase.reconnectWiFi(true);
-    fetchOfflineTokens();
   }
 }
 
 void loop() {
-  if (!apMode && WiFi.status() == WL_CONNECTED && millis() - lastTokenFetch > 60000) {
-    lastTokenFetch = millis();
+  unsigned long now = millis();
+
+  if (!apMode && now - lastTokenFetch > 60000) {
+    lastTokenFetch = now;
     fetchOfflineTokens();
   }
-  if (!apMode && WiFi.status() == WL_CONNECTED) {
-    if (Firebase.RTDB.getString(&fbdo, "/relaystate")) {
-      String state = fbdo.stringData();
-      if (state == "unlocked" && !unlocked) {
-        unlocked = true;
-        medTrigger = false;
-        Serial.println("Unlocked");
-        digitalWrite(MAIN_RELAY_PIN, HIGH);
-        if (Firebase.RTDB.getInt(&fbdo, "/relayHoldTime/ms")) {
-          holdTimeMs = fbdo.intData();
-        }
-        unlockStart = millis();
-      }
+
+  // Poll Firebase every 50ms
+  if ((!mainUnlocked || !medUnlocked) && now - lastCheck > 50 && WiFi.status() == WL_CONNECTED) {
+    lastCheck = now;
+
+    // refresh hold time
+    HTTPClient httpHold;
+    httpHold.begin(String(FIREBASE_URL) + "relayHoldTime/ms.json");
+    int holdCode = httpHold.GET();
+    if (holdCode == 200) {
+      String holdPayload = httpHold.getString();
+      holdTime = holdPayload.toInt();
+      Serial.print("⏱️ Updated holdTime: ");
+      Serial.println(holdTime);
     }
-    if (Firebase.RTDB.getString(&fbdo, "/medRelaystate")) {
-      String state = fbdo.stringData();
-      if (state == "unlocked" && !unlocked) {
-        unlocked = true;
-        medTrigger = true;
-        Serial.println("Med Unlocked");
-        digitalWrite(MED_RELAY_PIN, HIGH);
-        if (Firebase.RTDB.getInt(&fbdo, "/relayHoldTime/ms")) {
-          holdTimeMs = fbdo.intData();
+    httpHold.end();
+
+    if (!mainUnlocked) {
+      HTTPClient http;
+      http.begin(String(FIREBASE_URL) + "relaystate.json");
+      int code = http.GET();
+      if (code == 200) {
+        String payload = http.getString();
+        payload.trim();
+        payload.replace("\"", "");
+        if (payload == "unlocked") {
+          digitalWrite(MAIN_RELAY_PIN, HIGH);
+          mainStart = now;
+          mainUnlocked = true;
+          Serial.println("🔓 Main Relay ON");
         }
-        unlockStart = millis();
       }
+      http.end();
+    }
+
+    if (!medUnlocked) {
+      HTTPClient http;
+      http.begin(String(FIREBASE_URL) + "medRelaystate.json");
+      int code = http.GET();
+      if (code == 200) {
+        String payload = http.getString();
+        payload.trim();
+        payload.replace("\"", "");
+        if (payload == "unlocked") {
+          digitalWrite(MED_RELAY_PIN, HIGH);
+          medStart = now;
+          medUnlocked = true;
+          Serial.println("🔓 Med Relay ON");
+        }
+      }
+      http.end();
     }
   }
 
-  if (unlocked && millis() - unlockStart >= holdTimeMs) {
-    unlocked = false;
-    Serial.println("Locking");
-    digitalWrite(medTrigger ? MED_RELAY_PIN : MAIN_RELAY_PIN, LOW);
-    if (!apMode && WiFi.status() == WL_CONNECTED) {
-      if (medTrigger) {
-        Firebase.RTDB.setString(&fbdo, "/medRelaystate", "locked");
-      } else {
-        Firebase.RTDB.setString(&fbdo, "/relaystate", "locked");
-      }
+  if (mainUnlocked && now - mainStart >= holdTime) {
+    digitalWrite(MAIN_RELAY_PIN, LOW);
+    mainUnlocked = false;
+    if (WiFi.status() == WL_CONNECTED) {
+      HTTPClient http;
+      http.begin(String(FIREBASE_URL) + "relaystate.json");
+      http.addHeader("Content-Type", "application/json");
+      http.PUT("\"locked\"");
+      http.end();
     }
+    Serial.println("🔒 Main Relay OFF");
+  }
+
+  if (medUnlocked && now - medStart >= holdTime) {
+    digitalWrite(MED_RELAY_PIN, LOW);
+    medUnlocked = false;
+    if (WiFi.status() == WL_CONNECTED) {
+      HTTPClient http;
+      http.begin(String(FIREBASE_URL) + "medRelaystate.json");
+      http.addHeader("Content-Type", "application/json");
+      http.PUT("\"locked\"");
+      http.end();
+    }
+    Serial.println("🔒 Med Relay OFF");
+  }
+
+  if (!apMode && now - lastHeartbeat > 10000 && WiFi.status() == WL_CONNECTED) {
+    lastHeartbeat = now;
+    HTTPClient http;
+    http.begin(String(FIREBASE_URL) + "heartbeat.json");
+    http.addHeader("Content-Type", "application/json");
+    http.PUT(String(millis()));
+    http.end();
+    Serial.println("💓 Heartbeat sent");
   }
 
   if (apMode) {
     server.handleClient();
   }
-
-  delay(100);
 }
+
