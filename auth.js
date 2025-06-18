@@ -132,35 +132,27 @@ if (location.href.includes("general")) {
         const medStateDoc = doc(db, "config", "medRelaystate");
 
         const updateRelay = async (val) => {
-          try {
-            const tasks = [
-              setDoc(stateDoc, { state: val }),
-              set(ref(rtdb, "relaystate"), val)
-            ];
-            if (val === "unlocked") {
-              tasks.push(set(ref(rtdb, "relayHoldTime/ms"), holdMs));
-            }
-            await Promise.all(tasks);
-            return true;
-          } catch {
-            return false;
+          const tasks = [
+            setDoc(stateDoc, { state: val }),
+            set(ref(rtdb, "relaystate"), val)
+          ];
+          if (val === "unlocked") {
+            tasks.push(set(ref(rtdb, "relayHoldTime/ms"), holdMs));
           }
+          const results = await Promise.allSettled(tasks);
+          return results.some(r => r.status === "fulfilled");
         };
 
         const updateMedRelay = async (val) => {
-          try {
-            const tasks = [
-              setDoc(medStateDoc, { state: val }),
-              set(ref(rtdb, "medRelaystate"), val)
-            ];
-            if (val === "unlocked") {
-              tasks.push(set(ref(rtdb, "relayHoldTime/ms"), holdMs));
-            }
-            await Promise.all(tasks);
-            return true;
-          } catch {
-            return false;
+          const tasks = [
+            setDoc(medStateDoc, { state: val }),
+            set(ref(rtdb, "medRelaystate"), val)
+          ];
+          if (val === "unlocked") {
+            tasks.push(set(ref(rtdb, "relayHoldTime/ms"), holdMs));
           }
+          const results = await Promise.allSettled(tasks);
+          return results.some(r => r.status === "fulfilled");
         };
 
         toggleBtn.addEventListener("click", async () => {
