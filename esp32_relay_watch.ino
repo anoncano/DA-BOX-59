@@ -1,9 +1,9 @@
 /*
   esp32_relay_watch.ino
   Monitors the Realtime Database for the relay state.
-  When `/relaystate` becomes "unlocked" it toggles pin 13 HIGH, waits for the
-  number of milliseconds stored at `/relayHoldTime/ms`, then sets the pin LOW
-  and writes "locked" back to `/relaystate`.
+  When `/relaystate` or `/medRelaystate` becomes "unlocked" it toggles pin 13
+  HIGH, waits for the number of milliseconds stored at `/relayHoldTime/ms`, then
+  sets the pin LOW and writes "locked" back to whichever path triggered it.
 
   Requires the Firebase ESP Client library:
   https://github.com/mobizt/Firebase-ESP-Client
@@ -33,6 +33,7 @@ unsigned long unlockStart = 0;
 const int RELAY_PIN = 13;
 WebServer server(80);
 bool apMode = false;
+bool medTrigger = false;
 std::vector<String> offlineTokens;
 unsigned long lastTokenFetch = 0;
 
@@ -113,17 +114,32 @@ void loop() {
     lastTokenFetch = millis();
     fetchOfflineTokens();
   }
-  if (!apMode && WiFi.status() == WL_CONNECTED &&
-      Firebase.RTDB.getString(&fbdo, "/relaystate")) {
-    String state = fbdo.stringData();
-    if (state == "unlocked" && !unlocked) {
-      unlocked = true;
-      Serial.println("Unlocked");
-      digitalWrite(RELAY_PIN, HIGH);
-      if (Firebase.RTDB.getInt(&fbdo, "/relayHoldTime/ms")) {
-        holdTimeMs = fbdo.intData();
+  if (!apMode && WiFi.status() == WL_CONNECTED) {
+    if (Firebase.RTDB.getString(&fbdo, "/relaystate")) {
+      String state = fbdo.stringData();
+      if (state == "unlocked" && !unlocked) {
+        unlocked = true;
+        medTrigger = false;
+        Serial.println("Unlocked");
+        digitalWrite(RELAY_PIN, HIGH);
+        if (Firebase.RTDB.getInt(&fbdo, "/relayHoldTime/ms")) {
+          holdTimeMs = fbdo.intData();
+        }
+        unlockStart = millis();
       }
-      unlockStart = millis();
+    }
+    if (Firebase.RTDB.getString(&fbdo, "/medRelaystate")) {
+      String state = fbdo.stringData();
+      if (state == "unlocked" && !unlocked) {
+        unlocked = true;
+        medTrigger = true;
+        Serial.println("Med Unlocked");
+        digitalWrite(RELAY_PIN, HIGH);
+        if (Firebase.RTDB.getInt(&fbdo, "/relayHoldTime/ms")) {
+          holdTimeMs = fbdo.intData();
+        }
+        unlockStart = millis();
+      }
     }
   }
 
@@ -132,7 +148,11 @@ void loop() {
     Serial.println("Locking");
     digitalWrite(RELAY_PIN, LOW);
     if (!apMode && WiFi.status() == WL_CONNECTED) {
-      Firebase.RTDB.setString(&fbdo, "/relaystate", "locked");
+      if (medTrigger) {
+        Firebase.RTDB.setString(&fbdo, "/medRelaystate", "locked");
+      } else {
+        Firebase.RTDB.setString(&fbdo, "/relaystate", "locked");
+      }
     }
   }
 
@@ -140,5 +160,5 @@ void loop() {
     server.handleClient();
   }
 
-  delay(200);
+  delay(100);
 }
