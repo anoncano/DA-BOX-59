@@ -1,9 +1,10 @@
 /*
   esp32_relay_watch.ino
   Monitors the Realtime Database for the relay state.
-  When `/relaystate` or `/medRelaystate` becomes "unlocked" it toggles pin 13
-  HIGH, waits for the number of milliseconds stored at `/relayHoldTime/ms`, then
-  sets the pin LOW and writes "locked" back to whichever path triggered it.
+  When `/relaystate` becomes "unlocked" it drives pin 13 HIGH. When
+  `/medRelaystate` is "unlocked" it drives pin 12 HIGH. The board waits for the
+  number of milliseconds stored at `/relayHoldTime/ms`, then sets the same pin
+  LOW and writes "locked" back to whichever path triggered it.
 
   Requires the Firebase ESP Client library:
   https://github.com/mobizt/Firebase-ESP-Client
@@ -30,7 +31,8 @@ FirebaseConfig config;
 unsigned long holdTimeMs = 3000;
 bool unlocked = false;
 unsigned long unlockStart = 0;
-const int RELAY_PIN = 13;
+const int MAIN_RELAY_PIN = 13; // primary relay
+const int MED_RELAY_PIN = 12;  // med relay
 WebServer server(80);
 bool apMode = false;
 bool medTrigger = false;
@@ -72,7 +74,7 @@ void startAP() {
     }
     if (!unlocked) {
       unlocked = true;
-      digitalWrite(RELAY_PIN, HIGH);
+      digitalWrite(MAIN_RELAY_PIN, HIGH);
       unlockStart = millis();
     }
     server.send(200, "text/plain", "Unlocking");
@@ -82,8 +84,10 @@ void startAP() {
 
 void setup() {
   Serial.begin(115200);
-  pinMode(RELAY_PIN, OUTPUT);
-  digitalWrite(RELAY_PIN, LOW);
+  pinMode(MAIN_RELAY_PIN, OUTPUT);
+  pinMode(MED_RELAY_PIN, OUTPUT);
+  digitalWrite(MAIN_RELAY_PIN, LOW);
+  digitalWrite(MED_RELAY_PIN, LOW);
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.print("Connecting to WiFi");
@@ -121,7 +125,7 @@ void loop() {
         unlocked = true;
         medTrigger = false;
         Serial.println("Unlocked");
-        digitalWrite(RELAY_PIN, HIGH);
+        digitalWrite(MAIN_RELAY_PIN, HIGH);
         if (Firebase.RTDB.getInt(&fbdo, "/relayHoldTime/ms")) {
           holdTimeMs = fbdo.intData();
         }
@@ -134,7 +138,7 @@ void loop() {
         unlocked = true;
         medTrigger = true;
         Serial.println("Med Unlocked");
-        digitalWrite(RELAY_PIN, HIGH);
+        digitalWrite(MED_RELAY_PIN, HIGH);
         if (Firebase.RTDB.getInt(&fbdo, "/relayHoldTime/ms")) {
           holdTimeMs = fbdo.intData();
         }
@@ -146,7 +150,7 @@ void loop() {
   if (unlocked && millis() - unlockStart >= holdTimeMs) {
     unlocked = false;
     Serial.println("Locking");
-    digitalWrite(RELAY_PIN, LOW);
+    digitalWrite(medTrigger ? MED_RELAY_PIN : MAIN_RELAY_PIN, LOW);
     if (!apMode && WiFi.status() == WL_CONNECTED) {
       if (medTrigger) {
         Firebase.RTDB.setString(&fbdo, "/medRelaystate", "locked");
