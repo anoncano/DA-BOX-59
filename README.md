@@ -16,12 +16,12 @@ This app provides a simple interface for unlocking and locking a relay using Fir
 - The large toggle on the **General** panel switches between locked and unlocked, updating Firestore and the Realtime Database. The buttons stay in sync with the actual pin states via realtime listeners.
 - **Report Issue** opens a form so users can submit feedback. Reports show up for admins on their panel.
 - Admins can remove reports directly from the error list.
-- Sub users can generate invitation links via **Copy Token** on the general panel.
+- Sub users can generate invitation links via **Copy Token** on the general panel. The modal shows a QR code, lets them copy the URL and choose whether the new account should be a general or sub user.
 - The `esp32_relay_watch.ino` sketch demonstrates how an ESP32 watches the database. It toggles pin **13** when `/relaystate` becomes `unlocked` and pin **12** when `/medRelaystate` is `unlocked`, then resets the relay after the configured hold time.
-- If WiFi isn't available (or drops later), the sketch switches to a fallback access point `DaBox-AP` with a small web page at `http://192.168.4.1`. Use the displayed 4-digit PIN to unlock when offline. The pin is written to `/offlinePin` whenever WiFi reconnects.
+- If WiFi isn't available (or drops later), the sketch switches to a fallback access point `DaBox-AP` with a small web page at `http://192.168.4.1`. Use the displayed 4-digit PIN to unlock when offline. The pin is written to `/offlinePin` whenever WiFi reconnects. The offline modal includes a button to copy the PIN together with the default password `daboxpass`.
 - If the configured WiFi can't be reached, the board scans for open networks and connects to the strongest one so it stays online.
 - Over-the-air updates are available via a simple `/update` endpoint so admins can upload new firmware directly from the web UI.
-- The general panel watches `/offlinePin` in the Realtime Database. When the board goes offline a modal shows the current PIN and explains how to reach the AP.
+ - The general panel watches `/offlinePin` in the Realtime Database. When the board goes offline a modal shows the current PIN, explains how to connect and lets you copy the PIN along with the password.
  - Relay hold time saved from the admin panel is also stored in the Realtime Database at `/relayHoldTime/ms`. Both toggles write the same value whenever they unlock so hardware sees the latest hold time. The ESP writes `locked` back when the cycle ends so the UI only reverts once the board confirms.
 - The general panel shows a green "Device online" message when a heartbeat is received from the ESP and turns red when the heartbeat stops.
 - Admins can grant a **med** role. Users with this role see a second toggle on the general panel which writes to `medRelaystate`.

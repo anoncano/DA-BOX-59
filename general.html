@@ -35,10 +35,28 @@
 
   <div id="offlineModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden">
     <div class="bg-gray-800 p-4 rounded space-y-4 w-full max-w-md text-center">
-      <p>Device appears offline. Connect to <b>DaBox-AP</b> and use the PIN below.</p>
+      <p>Device appears offline.<br>Connect to <b>DaBox-AP</b> with password <b>daboxpass</b> then open <code>http://192.168.4.1</code>.</p>
       <input id="offlineCodeInput" class="w-full p-2 bg-gray-700 rounded" placeholder="Offline PIN" />
-      <button id="launchOffline" class="bg-blue-600 px-4 py-2 rounded w-full">Open AP Link</button>
+      <div class="flex flex-wrap gap-2 justify-center">
+        <button id="copyCreds" class="bg-gray-600 px-2 py-1 rounded flex-1">Copy PIN &amp; Password</button>
+        <button id="launchOffline" class="bg-blue-600 px-4 py-2 rounded flex-1">Open AP Link</button>
+      </div>
       <button id="closeOffline" class="bg-gray-600 px-2 py-1 rounded w-full">Close</button>
+    </div>
+  </div>
+
+  <div id="tokenModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden">
+    <div class="bg-gray-800 p-4 rounded space-y-4 w-full max-w-md text-center">
+      <img id="tokenQr" class="mx-auto" alt="QR" />
+      <input id="tokenUrl" class="w-full p-2 bg-gray-700 rounded text-center" readonly />
+      <div class="flex items-center gap-2">
+        <button id="copyTokenUrl" class="bg-blue-600 px-2 py-1 rounded flex-1">Copy URL</button>
+        <select id="tokenRole" class="bg-gray-700 text-white rounded px-2 py-1">
+          <option value="general">general</option>
+          <option value="sub">sub</option>
+        </select>
+      </div>
+      <button id="closeToken" class="bg-gray-600 px-2 py-1 rounded w-full">Close</button>
     </div>
   </div>
 

@@ -85,10 +85,11 @@ if (location.href.includes("register")) {
           return;
         }
         const cred = await createUserWithEmailAndPassword(auth, email, pass);
+        const data = tokSnap.data();
         await setDoc(doc(db, "users", cred.user.uid), {
           name,
-          role: "general",
-          roles: []
+          role: data.role || "general",
+          roles: data.roles || []
         });
         await updateDoc(doc(db, "registerTokens", token), { used: true });
         showNotif("Registration successful");
@@ -111,6 +112,13 @@ if (location.href.includes("general")) {
     const errorBtn = $("errorBtn");
     const modal = $("errorModal");
     const offlineModal = $("offlineModal");
+    const copyCreds = $("copyCreds");
+    const tokenModal = $("tokenModal");
+    const tokenQr = $("tokenQr");
+    const tokenUrlInput = $("tokenUrl");
+    const copyTokenUrl = $("copyTokenUrl");
+    const tokenRole = $("tokenRole");
+    const closeToken = $("closeToken");
     const closeOffline = $("closeOffline");
     const launchOffline = $("launchOffline");
     const offlineCodeInput = $("offlineCodeInput");
@@ -123,6 +131,7 @@ if (location.href.includes("general")) {
     let holdMs = 3000;
     let offlinePin = "";
     let offlineShown = false;
+    let currentToken = "";
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) return location.href = "index.html";
@@ -132,7 +141,7 @@ if (location.href.includes("general")) {
       const rolesArr = uSnap.data()?.roles || [];
 
       const applyMedToggle = (arr) => {
-        if (arr.includes("med")) {
+        if (role === "sub" || arr.includes("med")) {
           medToggle.classList.remove("hidden");
         } else {
           medToggle.classList.add("hidden");
@@ -183,17 +192,20 @@ if (location.href.includes("general")) {
           btn.textContent = on ? onLabel : offLabel;
           btn.classList.toggle("bg-green-600", on);
           btn.classList.toggle("bg-red-600", !on);
-          btn.disabled = on;
         };
 
         onValue(ref(rtdb, "relaystate"), s => {
           unlocked = s.val() === "unlocked";
           applyState(toggleBtn, unlocked, "LOCKED", "UNLOCKED");
+          toggleBtn.disabled = unlocked || medUnlocked;
+          toggleBtn.classList.toggle("opacity-50", medUnlocked && !unlocked);
         });
 
         onValue(ref(rtdb, "medRelaystate"), s => {
           medUnlocked = s.val() === "unlocked";
           applyState(medToggle, medUnlocked, "MED LOCKED", "MED UNLOCKED");
+          medToggle.disabled = medUnlocked || unlocked;
+          medToggle.classList.toggle("opacity-50", unlocked && !medUnlocked);
         });
 
         const updateRelay = async (val) => {
@@ -239,23 +251,37 @@ if (location.href.includes("general")) {
         if (role === "sub") {
           copyBtn.classList.remove("hidden");
           copyBtn.onclick = async () => {
-            const newToken = uuidv4();
-            await setDoc(doc(db, "registerTokens", newToken), {
-              createdAt: serverTimestamp(),
-              used: false
-            });
-            const url = `${location.origin}/register.html?token=${newToken}`;
-            await navigator.clipboard.writeText(url);
-            showNotif("Token copied:\n" + url);
+            currentToken = uuidv4();
+            const url = `${location.origin}/register.html?token=${currentToken}`;
+            tokenUrlInput.value = url;
+            tokenQr.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+            tokenModal.classList.remove("hidden");
           };
+          copyTokenUrl.onclick = async () => {
+            const roleSel = tokenRole.value;
+            await setDoc(doc(db, "registerTokens", currentToken), {
+              createdAt: serverTimestamp(),
+              used: false,
+              role: roleSel,
+              roles: roleSel === "sub" ? ["med"] : []
+            });
+            await navigator.clipboard.writeText(tokenUrlInput.value);
+            showNotif("Token copied:\n" + tokenUrlInput.value);
+            tokenModal.classList.add("hidden");
+          };
+          closeToken.onclick = () => tokenModal.classList.add("hidden");
         }
 
         offlineBtn.onclick = () => {
           if (!offlinePin) return showNotif("No PIN available yet");
-          navigator.clipboard.writeText(offlinePin);
           offlineCodeInput.value = offlinePin;
-          showNotif("PIN copied:\n" + offlinePin);
           offlineModal.classList.remove("hidden");
+        };
+
+        copyCreds.onclick = () => {
+          if (!offlinePin) return;
+          navigator.clipboard.writeText(`${offlinePin}\ndaboxpass`);
+          showNotif("PIN & password copied");
         };
 
         closeOffline.onclick = () => {
