@@ -14,7 +14,7 @@
       <button onclick="logout()" class="text-red-400 hover:underline">Logout</button>
     </header>
 
-    <button onclick="generateToken()" class="w-full bg-green-600 p-2 rounded">Generate &amp; Copy Token</button>
+    <button onclick="generateToken()" class="w-full bg-green-600 p-2 rounded">Generate Invite</button>
 
     <div class="grid gap-4 md:grid-cols-2">
       <div>
@@ -35,6 +35,17 @@
   </div>
 
   <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded hidden"></div>
+
+  <div id="tokenModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden">
+    <div class="bg-gray-800 p-4 rounded space-y-4 w-full max-w-sm text-center">
+      <img id="adminTokenQr" class="mx-auto" />
+      <input id="adminTokenLink" readonly class="w-full p-2 bg-gray-700 rounded" />
+      <div class="flex justify-end gap-2">
+        <button id="copyAdminToken" class="bg-blue-600 px-4 py-2 rounded">Copy Link</button>
+        <button id="closeAdminToken" class="bg-gray-600 px-4 py-2 rounded">Close</button>
+      </div>
+    </div>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";

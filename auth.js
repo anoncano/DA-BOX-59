@@ -86,7 +86,8 @@ if (location.href.includes("register")) {
         const cred = await createUserWithEmailAndPassword(auth, email, pass);
         await setDoc(doc(db, "users", cred.user.uid), {
           name,
-          role: "general"
+          role: "general",
+          firstLogin: true
         });
         await updateDoc(doc(db, "registerTokens", token), { used: true });
         showNotif("Registration successful");
@@ -103,6 +104,7 @@ if (location.href.includes("register")) {
 if (location.href.includes("general")) {
   window.addEventListener("DOMContentLoaded", () => {
     const toggleBtn = $("toggleBtn");
+    const toggleBtn2 = $("toggleBtn2");
     const copyBtn = $("copyBtn");
     const offlineBtn = $("offlineBtn");
     const errorBtn = $("errorBtn");
@@ -111,24 +113,62 @@ if (location.href.includes("general")) {
     const cancelError = $("cancelError");
     const sendError = $("sendError");
     let unlocked = false;
+    let unlocked2 = false;
     let holdMs = 3000;
+
+    const showOffline = (code) => {
+      $("offlineCode").textContent = code;
+      $("offlineModal").classList.remove("hidden");
+      $("copyOffline").onclick = () => {
+        navigator.clipboard.writeText(code);
+        showNotif("PIN copied");
+      };
+      $("closeOffline").onclick = () => $("offlineModal").classList.add("hidden");
+    };
+
+    if (!navigator.onLine) {
+      const pin = localStorage.getItem("offlinePin");
+      if (pin) showOffline(pin);
+    }
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) return location.href = "index.html";
       const snap = await getDoc(doc(db, "users", user.uid));
-      const role = snap.data()?.role;
+      const data = snap.data() || {};
+      const role = data.role;
+
+      if (data.firstLogin) {
+        $("firstLoginModal").classList.remove("hidden");
+        $("closeFirst").onclick = async () => {
+          $("firstLoginModal").classList.add("hidden");
+          await updateDoc(doc(db, "users", user.uid), { firstLogin: false });
+        };
+      }
 
       if (role !== "admin") {
         const hold = await getDoc(doc(db, "config", "relayHoldTime"));
         if (hold.exists()) holdMs = hold.data().ms || holdMs;
 
         const stateDoc = doc(db, "config", "relaystate");
+        const stateDoc2 = doc(db, "config", "relaystate2");
 
         const updateRelay = async (val) => {
           try {
             await Promise.all([
               setDoc(stateDoc, { state: val }),
               set(ref(rtdb, "relaystate"), val)
+            ]);
+            return true;
+          } catch {
+            return false;
+          }
+        };
+
+        const updateRelay2 = async (val) => {
+          try {
+            await Promise.all([
+              setDoc(stateDoc2, { state: val }),
+              set(ref(rtdb, "relaystate2"), val)
             ]);
             return true;
           } catch {
@@ -160,8 +200,32 @@ if (location.href.includes("general")) {
           }, holdMs);
         });
 
+        if (toggleBtn2) {
+          toggleBtn2.classList.remove("hidden");
+          toggleBtn2.addEventListener("click", async () => {
+            if (unlocked2) return;
+            unlocked2 = true;
+            toggleBtn2.textContent = "UNLOCKED";
+            toggleBtn2.classList.remove("bg-red-600");
+            toggleBtn2.classList.add("bg-green-600");
+            toggleBtn2.disabled = true;
+            const ok1 = await updateRelay2("unlocked");
+            if (!ok1) showNotif("Failed to update second relay");
+            setTimeout(async () => {
+              unlocked2 = false;
+              toggleBtn2.textContent = "LOCKED";
+              toggleBtn2.classList.remove("bg-green-600");
+              toggleBtn2.classList.add("bg-red-600");
+              toggleBtn2.disabled = false;
+              const ok2 = await updateRelay2("locked");
+              if (!ok2) showNotif("Failed to update second relay");
+            }, holdMs);
+          });
+        }
+
         if (role === "sub") {
           copyBtn.classList.remove("hidden");
+          const tModal = $("tokenModal");
           copyBtn.onclick = async () => {
             const newToken = uuidv4();
             await setDoc(doc(db, "registerTokens", newToken), {
@@ -169,15 +233,28 @@ if (location.href.includes("general")) {
               used: false
             });
             const url = `${location.origin}/register.html?token=${newToken}`;
-            await navigator.clipboard.writeText(url);
-            showNotif("Token copied:\n" + url);
+            $("tokenQr").src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+            $("tokenLink").value = url;
+            tModal.classList.remove("hidden");
+            $("copyToken").onclick = () => {
+              navigator.clipboard.writeText(url);
+              showNotif("Link copied");
+            };
+            $("closeToken").onclick = () => tModal.classList.add("hidden");
           };
         }
 
         offlineBtn.onclick = async () => {
-          const code = uuidv4();
-          await navigator.clipboard.writeText(code);
-          showNotif("Offline code copied:\n" + code);
+          let code = localStorage.getItem("offlinePin");
+          if (!code) {
+            code = uuidv4();
+            localStorage.setItem("offlinePin", code);
+            if (role === "admin") {
+              await setDoc(doc(db, "config", "offlinePin"), { pin: code });
+            }
+          }
+          showOffline(code);
+          navigator.clipboard.writeText(code);
         };
 
         errorBtn.onclick = () => {
@@ -259,8 +336,15 @@ if (location.href.includes("admin")) {
         used: false
       });
       const url = `${location.origin}/register.html?token=${newToken}`;
-      await navigator.clipboard.writeText(url);
-      showNotif("Token copied:\n" + url);
+      $("adminTokenQr").src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+      $("adminTokenLink").value = url;
+      const modal = document.getElementById("tokenModal");
+      modal.classList.remove("hidden");
+      $("copyAdminToken").onclick = () => {
+        navigator.clipboard.writeText(url);
+        showNotif("Link copied");
+      };
+      $("closeAdminToken").onclick = () => modal.classList.add("hidden");
     };
   });
 }
