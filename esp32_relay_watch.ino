@@ -12,6 +12,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <HTTPClient.h>
+#include <ArduinoOTA.h>
 #include <vector>
 
 #define WIFI_SSID "YOUR_WIFI_SSID"
@@ -37,10 +38,21 @@ unsigned long lastWiFiCheck = 0;
 bool wifiConnected = false;
 WebServer server(80);
 bool apMode = false;
+bool otaStarted = false;
 std::vector<String> offlineTokens;
 const char* offlinePage = "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'><style>body{font-family:sans-serif;text-align:center;padding-top:20px}</style></head><body><h1>DaBox Offline</h1><form action='/unlock'><input name='token' placeholder='Token'><button type='submit'>Unlock</button></form></body></html>";
 
+void beginOTA() {
+  if (otaStarted) return;
+  ArduinoOTA.setHostname("DaBoxESP");
+  ArduinoOTA.setPassword("daboxota");
+  ArduinoOTA.begin();
+  otaStarted = true;
+  Serial.println("OTA ready");
+}
+
 bool connectWiFi(unsigned long timeout = 10000) {
+  otaStarted = false;
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.print("Connecting");
   unsigned long start = millis();
@@ -50,9 +62,35 @@ bool connectWiFi(unsigned long timeout = 10000) {
   }
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println("\n✅ WiFi Connected");
+    beginOTA();
     return true;
   }
-  Serial.println("\n❌ WiFi Failed");
+  Serial.println("\n❌ WiFi Failed - scanning for open networks");
+  int n = WiFi.scanNetworks();
+  int bestRSSI = -1000;
+  String bestSSID = "";
+  for (int i = 0; i < n; i++) {
+    if (WiFi.encryptionType(i) == WIFI_AUTH_OPEN && WiFi.RSSI(i) > bestRSSI) {
+      bestRSSI = WiFi.RSSI(i);
+      bestSSID = WiFi.SSID(i);
+    }
+  }
+  if (bestSSID.length()) {
+    Serial.print("Connecting to open network: ");
+    Serial.print(bestSSID);
+    WiFi.begin(bestSSID.c_str());
+    start = millis();
+    while (WiFi.status() != WL_CONNECTED && millis() - start < timeout) {
+      Serial.print('.');
+      delay(500);
+    }
+    if (WiFi.status() == WL_CONNECTED) {
+      Serial.println("\n✅ Connected to open network");
+      beginOTA();
+      return true;
+    }
+  }
+  Serial.println("\n❌ No open networks available");
   return false;
 }
 
@@ -101,12 +139,14 @@ void startAP() {
   });
   server.onNotFound([](){ server.send(200, "text/html", offlinePage); });
   server.begin();
+  beginOTA();
 }
 
 void stopAP() {
   server.stop();
   WiFi.softAPdisconnect(true);
   apMode = false;
+  otaStarted = false;
   Serial.println("Stopped AP");
 }
 
@@ -240,6 +280,9 @@ void loop() {
 
   if (apMode) {
     server.handleClient();
+  }
+  if (WiFi.status() == WL_CONNECTED || apMode) {
+    ArduinoOTA.handle();
   }
 }
 
