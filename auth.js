@@ -144,24 +144,14 @@ if (location.href.includes("general")) {
       const role = uSnap.data()?.role;
       const rolesArr = uSnap.data()?.roles || [];
 
-      if (!uSnap.data()?.introSeen) {
-        introModal.classList.remove("hidden");
-        closeIntro.onclick = async () => {
-          introModal.classList.add("hidden");
-          await updateDoc(uRef, { introSeen: true });
-        };
-      }
 
-      const applyMedToggle = (arr, r) => {
-        if (r === "sub" || arr.includes("med")) {
           medToggle.classList.remove("hidden");
         } else {
           medToggle.classList.add("hidden");
         }
       };
 
-      applyMedToggle(rolesArr, role);
-      onSnapshot(uRef, (s) => applyMedToggle(s.data()?.roles || [], s.data()?.role));
+
 
       if (role !== "admin") {
         const hold = await getDoc(doc(db, "config", "relayHoldTime"));
@@ -250,7 +240,7 @@ if (location.href.includes("general")) {
         });
 
         medToggle.addEventListener("click", async () => {
-          if (medUnlocked || unlocked) return showNotif("Other relay active");
+
           medUnlocked = true;
           const ok1 = await updateMedRelay("unlocked");
           if (!ok1) showNotif("Failed to update med state");
