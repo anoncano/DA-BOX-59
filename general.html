@@ -35,10 +35,21 @@
 
   <div id="offlineModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden">
     <div class="bg-gray-800 p-4 rounded space-y-4 w-full max-w-md text-center">
-      <p>Device appears offline. Connect to <b>DaBox-AP</b> and use the PIN below.</p>
+      <p>Device appears offline. Connect to <b>DaBox-AP</b> (password <b>daboxpass</b>) and use the PIN below.</p>
+      <div class="flex gap-2">
+        <button id="copySsid" class="bg-gray-700 px-2 py-1 rounded w-full">Copy SSID</button>
+        <button id="copyPass" class="bg-gray-700 px-2 py-1 rounded w-full">Copy Password</button>
+      </div>
       <input id="offlineCodeInput" class="w-full p-2 bg-gray-700 rounded" placeholder="Offline PIN" />
       <button id="launchOffline" class="bg-blue-600 px-4 py-2 rounded w-full">Open AP Link</button>
       <button id="closeOffline" class="bg-gray-600 px-2 py-1 rounded w-full">Close</button>
+    </div>
+  </div>
+
+  <div id="introModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden">
+    <div class="bg-gray-800 p-4 rounded space-y-4 w-full max-w-md text-center">
+      <p>Welcome to DaBox! Tap the big button to lock or unlock. Use Logout when you're done. The Delete button isn't active yet.</p>
+      <button id="closeIntro" class="bg-blue-600 px-4 py-2 rounded w-full">Got it</button>
     </div>
   </div>
 

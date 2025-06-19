@@ -88,7 +88,8 @@ if (location.href.includes("register")) {
         await setDoc(doc(db, "users", cred.user.uid), {
           name,
           role: "general",
-          roles: []
+          roles: [],
+          intro: false
         });
         await updateDoc(doc(db, "registerTokens", token), { used: true });
         showNotif("Registration successful");
@@ -113,7 +114,11 @@ if (location.href.includes("general")) {
     const offlineModal = $("offlineModal");
     const closeOffline = $("closeOffline");
     const launchOffline = $("launchOffline");
+    const copySsid = $("copySsid");
+    const copyPass = $("copyPass");
     const offlineCodeInput = $("offlineCodeInput");
+    const offlineSsid = "DaBox-AP";
+    const offlinePwd = "daboxpass";
     const errorText = $("errorText");
     const cancelError = $("cancelError");
     const sendError = $("sendError");
@@ -141,6 +146,18 @@ if (location.href.includes("general")) {
 
       applyMedToggle(rolesArr);
       onSnapshot(uRef, (s) => applyMedToggle(s.data()?.roles || []));
+
+      if (!uSnap.data()?.intro) {
+        const modal = $("introModal");
+        const close = $("closeIntro");
+        if (modal && close) {
+          modal.classList.remove("hidden");
+          close.onclick = async () => {
+            modal.classList.add("hidden");
+            await updateDoc(uRef, { intro: true });
+          };
+        }
+      }
 
       if (role !== "admin") {
         const hold = await getDoc(doc(db, "config", "relayHoldTime"));
@@ -256,6 +273,15 @@ if (location.href.includes("general")) {
           offlineCodeInput.value = offlinePin;
           showNotif("PIN copied:\n" + offlinePin);
           offlineModal.classList.remove("hidden");
+        };
+
+        if (copySsid) copySsid.onclick = () => {
+          navigator.clipboard.writeText(offlineSsid);
+          showNotif("SSID copied");
+        };
+        if (copyPass) copyPass.onclick = () => {
+          navigator.clipboard.writeText(offlinePwd);
+          showNotif("Password copied");
         };
 
         closeOffline.onclick = () => {
