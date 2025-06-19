@@ -5,7 +5,8 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore, doc, setDoc, getDoc, updateDoc,
-  collection, getDocs, serverTimestamp, addDoc
+  collection, getDocs, serverTimestamp, addDoc,
+  onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getFunctions } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -15,10 +16,10 @@ const firebaseConfig = {
   apiKey: "AIzaSyDF_BGAKz4NbsZPZmAcJofaYsccxtIIQ_o",
   authDomain: "da-box-59.firebaseapp.com",
   projectId: "da-box-59",
-  storageBucket: "da-box-59.firebasestorage.app",
+  storageBucket: "da-box-59.appspot.com",
   messagingSenderId: "382682873063",
   appId: "1:382682873063:web:e240e1bf8e14527b277642",
-  databaseURL: "https://da-box-59-default-rtdb.asia-southeast1.firebasedatabase.app" // ✅ FIXED
+  databaseURL: "https://da-box-59-default-rtdb.asia-southeast1.firebasedatabase.app"
 };
 
 
@@ -125,9 +126,21 @@ if (location.href.includes("general")) {
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) return location.href = "index.html";
-      const snap = await getDoc(doc(db, "users", user.uid));
-      const role = snap.data()?.role;
-      const rolesArr = snap.data()?.roles || [];
+      const uRef = doc(db, "users", user.uid);
+      const uSnap = await getDoc(uRef);
+      const role = uSnap.data()?.role;
+      const rolesArr = uSnap.data()?.roles || [];
+
+      const applyMedToggle = (arr) => {
+        if (arr.includes("med")) {
+          medToggle.classList.remove("hidden");
+        } else {
+          medToggle.classList.add("hidden");
+        }
+      };
+
+      applyMedToggle(rolesArr);
+      onSnapshot(uRef, (s) => applyMedToggle(s.data()?.roles || []));
 
       if (role !== "admin") {
         const hold = await getDoc(doc(db, "config", "relayHoldTime"));
@@ -215,16 +228,13 @@ if (location.href.includes("general")) {
           // ESP will update the locked state after the hold time
         });
 
-        if (rolesArr.includes("med")) {
-          medToggle.classList.remove("hidden");
-          medToggle.addEventListener("click", async () => {
-            if (medUnlocked) return;
-            medUnlocked = true;
-            const ok1 = await updateMedRelay("unlocked");
-            if (!ok1) showNotif("Failed to update med state");
-            // ESP will update the locked state after the hold time
-          });
-        }
+        medToggle.addEventListener("click", async () => {
+          if (medUnlocked) return;
+          medUnlocked = true;
+          const ok1 = await updateMedRelay("unlocked");
+          if (!ok1) showNotif("Failed to update med state");
+          // ESP will update the locked state after the hold time
+        });
 
         if (role === "sub") {
           copyBtn.classList.remove("hidden");
