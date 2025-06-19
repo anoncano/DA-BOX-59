@@ -5,15 +5,16 @@
   When `/medRelaystate` becomes "unlocked" it toggles pin 12.
   The board locks the relay again after `/relayHoldTime/ms` milliseconds.
   If WiFi is unavailable, it starts an access point `DaBox-AP` so users can
-  unlock by visiting `http://192.168.4.1/unlock?token=YOUR_CODE` using an
-  offline token stored at `/offlineTokens`.
+  unlock by visiting `http://192.168.4.1/unlock?pin=1234` using the current
+  offline PIN stored at `/offlinePin`. The pin refreshes whenever WiFi is
+  connected again. A simple `/update` endpoint accepts firmware uploads.
 */
 
 #include <WiFi.h>
 #include <WebServer.h>
 #include <HTTPClient.h>
 #include <ArduinoOTA.h>
-#include <vector>
+#include <Update.h>
 
 #define WIFI_SSID "YOUR_WIFI_SSID"
 #define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
@@ -33,14 +34,13 @@ int holdTime = 200;
 
 unsigned long lastCheck = 0;
 unsigned long lastHeartbeat = 0;
-unsigned long lastTokenFetch = 0;
 unsigned long lastWiFiCheck = 0;
 bool wifiConnected = false;
 WebServer server(80);
 bool apMode = false;
 bool otaStarted = false;
-std::vector<String> offlineTokens;
-const char* offlinePage = "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'><style>body{font-family:sans-serif;text-align:center;padding-top:20px}</style></head><body><h1>DaBox Offline</h1><form action='/unlock'><input name='token' placeholder='Token'><button type='submit'>Unlock</button></form></body></html>";
+String offlinePin = "0000";
+const char* offlinePage = "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'><style>body{font-family:sans-serif;text-align:center;padding-top:20px}</style></head><body><h1>DaBox Offline</h1><form action='/unlock'><input name='pin' placeholder='PIN'><button type='submit'>Unlock</button></form><form method='POST' action='/update' enctype='multipart/form-data'><input type='file' name='firmware'><button type='submit'>Update</button></form></body></html>";
 
 void beginOTA() {
   if (otaStarted) return;
@@ -49,6 +49,28 @@ void beginOTA() {
   ArduinoOTA.begin();
   otaStarted = true;
   Serial.println("OTA ready");
+}
+
+void generatePin() {
+  offlinePin = String(random(1000, 10000));
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    http.begin(String(FIREBASE_URL) + "offlinePin.json");
+    http.addHeader("Content-Type", "application/json");
+    http.PUT("\"" + offlinePin + "\"");
+    http.end();
+  }
+}
+
+void sendHeartbeat() {
+  if (WiFi.status() != WL_CONNECTED) return;
+  HTTPClient http;
+  http.begin(String(FIREBASE_URL) + "heartbeat.json");
+  http.addHeader("Content-Type", "application/json");
+  String body = String("{\"ts\":") + millis() + ",\"ip\":\"" + WiFi.localIP().toString() + "\"}";
+  http.PUT(body);
+  http.end();
+  Serial.println("💓 Heartbeat sent");
 }
 
 bool connectWiFi(unsigned long timeout = 10000) {
@@ -63,6 +85,8 @@ bool connectWiFi(unsigned long timeout = 10000) {
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println("\n✅ WiFi Connected");
     beginOTA();
+    generatePin();
+    sendHeartbeat();
     return true;
   }
   Serial.println("\n❌ WiFi Failed - scanning for open networks");
@@ -87,6 +111,8 @@ bool connectWiFi(unsigned long timeout = 10000) {
     if (WiFi.status() == WL_CONNECTED) {
       Serial.println("\n✅ Connected to open network");
       beginOTA();
+      generatePin();
+      sendHeartbeat();
       return true;
     }
   }
@@ -94,25 +120,6 @@ bool connectWiFi(unsigned long timeout = 10000) {
   return false;
 }
 
-void fetchOfflineTokens() {
-  if (WiFi.status() != WL_CONNECTED) return;
-  HTTPClient http;
-  http.begin(String(FIREBASE_URL) + "offlineTokens.json");
-  int code = http.GET();
-  if (code == 200) {
-    String payload = http.getString();
-    offlineTokens.clear();
-    int pos = 0;
-    while ((pos = payload.indexOf('"', pos)) != -1) {
-      int end = payload.indexOf('"', pos + 1);
-      if (end == -1) break;
-      offlineTokens.push_back(payload.substring(pos + 1, end));
-      pos = payload.indexOf('"', end + 1);
-      if (pos == -1) break;
-    }
-  }
-  http.end();
-}
 
 void startAP() {
   WiFi.softAP(AP_SSID, AP_PASSWORD);
@@ -121,13 +128,10 @@ void startAP() {
   apMode = true;
   server.on("/", [](){ server.send(200, "text/html", offlinePage); });
   server.on("/unlock", []() {
-    String tok = server.arg("token");
-    bool valid = false;
-    for (const auto& t : offlineTokens) {
-      if (t == tok) { valid = true; break; }
-    }
-    if (!valid) {
-      server.send(403, "text/plain", "Invalid token");
+    String pin = server.arg("pin");
+    if (pin != offlinePin) {
+      server.sendHeader("Access-Control-Allow-Origin", "*");
+      server.send(403, "text/plain", "Invalid pin");
       return;
     }
     if (!mainUnlocked && !medUnlocked) {
@@ -135,7 +139,23 @@ void startAP() {
       digitalWrite(MAIN_RELAY_PIN, HIGH);
       mainStart = millis();
     }
+    server.sendHeader("Access-Control-Allow-Origin", "*");
     server.send(200, "text/plain", "Unlocking");
+  });
+  server.on("/update", HTTP_POST, [](){
+    server.sendHeader("Access-Control-Allow-Origin", "*");
+    server.sendHeader("Connection", "close");
+    server.send(200, "text/plain", Update.hasError() ? "FAIL" : "OK");
+    if (!Update.hasError()) ESP.restart();
+  }, [](){
+    HTTPUpload& up = server.upload();
+    if (up.status == UPLOAD_FILE_START) {
+      Update.begin();
+    } else if (up.status == UPLOAD_FILE_WRITE) {
+      Update.write(up.buf, up.currentSize);
+    } else if (up.status == UPLOAD_FILE_END) {
+      Update.end(true);
+    }
   });
   server.onNotFound([](){ server.send(200, "text/html", offlinePage); });
   server.begin();
@@ -146,21 +166,20 @@ void stopAP() {
   server.stop();
   WiFi.softAPdisconnect(true);
   apMode = false;
-  otaStarted = false;
+  server.begin();
   Serial.println("Stopped AP");
 }
 
 void setup() {
   Serial.begin(115200);
+  randomSeed(micros());
   pinMode(MAIN_RELAY_PIN, OUTPUT);
   pinMode(MED_RELAY_PIN, OUTPUT);
   digitalWrite(MAIN_RELAY_PIN, LOW);
   digitalWrite(MED_RELAY_PIN, LOW);
 
   wifiConnected = connectWiFi();
-  if (wifiConnected) {
-    fetchOfflineTokens();
-  } else {
+  if (!wifiConnected) {
     startAP();
   }
 }
@@ -176,17 +195,14 @@ void loop() {
         if (!wifiConnected) startAP();
       } else if (connectWiFi()) {
         stopAP();
-        fetchOfflineTokens();
+        generatePin();
+        sendHeartbeat();
       }
     } else if (apMode) {
       stopAP();
-      fetchOfflineTokens();
+      generatePin();
+      sendHeartbeat();
     }
-  }
-
-  if (!apMode && WiFi.status() == WL_CONNECTED && now - lastTokenFetch > 60000) {
-    lastTokenFetch = now;
-    fetchOfflineTokens();
   }
 
   // Poll Firebase every 50ms
@@ -270,12 +286,7 @@ void loop() {
 
   if (!apMode && now - lastHeartbeat > 10000 && WiFi.status() == WL_CONNECTED) {
     lastHeartbeat = now;
-    HTTPClient http;
-    http.begin(String(FIREBASE_URL) + "heartbeat.json");
-    http.addHeader("Content-Type", "application/json");
-    http.PUT(String(millis()));
-    http.end();
-    Serial.println("💓 Heartbeat sent");
+    sendHeartbeat();
   }
 
   if (apMode) {

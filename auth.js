@@ -120,7 +120,7 @@ if (location.href.includes("general")) {
     let unlocked = false;
     let medUnlocked = false;
     let holdMs = 3000;
-    let offlineCode = "";
+    let offlinePin = "";
     let offlineShown = false;
 
     onAuthStateChanged(auth, async (user) => {
@@ -138,6 +138,10 @@ if (location.href.includes("general")) {
         });
 
         let hbLast = 0;
+        onValue(ref(rtdb, "offlinePin"), s => {
+          offlinePin = s.val() || "";
+        });
+
         onValue(ref(rtdb, "heartbeat"), () => {
           hbLast = Date.now();
           hbStatus.textContent = "Device online";
@@ -153,7 +157,7 @@ if (location.href.includes("general")) {
             hbStatus.classList.add("text-red-400");
             if (!offlineShown) {
               offlineShown = true;
-              offlineCodeInput.value = offlineCode;
+              offlineCodeInput.value = offlinePin;
               offlineModal.classList.remove("hidden");
             }
           }
@@ -236,18 +240,12 @@ if (location.href.includes("general")) {
           };
         }
 
-        offlineBtn.onclick = async () => {
-          const code = uuidv4();
-          try {
-            await set(ref(rtdb, "offlineTokens/" + code), true);
-            await navigator.clipboard.writeText(code);
-            offlineCode = code;
-            offlineCodeInput.value = code;
-            showNotif("Offline code copied:\n" + code);
-            offlineModal.classList.remove("hidden");
-          } catch {
-            showNotif("Failed to save offline code");
-          }
+        offlineBtn.onclick = () => {
+          if (!offlinePin) return showNotif("No PIN available yet");
+          navigator.clipboard.writeText(offlinePin);
+          offlineCodeInput.value = offlinePin;
+          showNotif("PIN copied:\n" + offlinePin);
+          offlineModal.classList.remove("hidden");
         };
 
         closeOffline.onclick = () => {
@@ -256,7 +254,7 @@ if (location.href.includes("general")) {
         };
         launchOffline.onclick = () => {
           const tok = offlineCodeInput.value.trim();
-          if (tok) window.open(`http://192.168.4.1/unlock?token=${encodeURIComponent(tok)}`, "_blank");
+          if (tok) window.open(`http://192.168.4.1/unlock?pin=${encodeURIComponent(tok)}`, "_blank");
         };
 
         errorBtn.onclick = () => {
