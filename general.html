@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DaBox General Panel</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
   <style>#toast{transition:opacity .3s;} .hidden{opacity:0;} body{font-family:system-ui,sans-serif;}</style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen p-4 sm:p-6 flex flex-col items-center justify-center">
@@ -35,10 +36,45 @@
 
   <div id="offlineModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden">
     <div class="bg-gray-800 p-4 rounded space-y-4 w-full max-w-md text-center">
-      <p>Device appears offline. Connect to <b>DaBox-AP</b> and use the PIN below.</p>
+      <p>Device appears offline. Connect to the AP then open the link with the PIN.</p>
+      <div class="flex gap-2">
+        <input id="ssidVal" readonly value="DaBox-AP" class="flex-1 p-2 bg-gray-700 rounded" />
+        <button id="copySsid" class="bg-gray-600 px-2 rounded">Copy</button>
+      </div>
+      <div class="flex gap-2">
+        <input id="passVal" readonly value="daboxpass" class="flex-1 p-2 bg-gray-700 rounded" />
+        <button id="copyPass" class="bg-gray-600 px-2 rounded">Copy</button>
+      </div>
       <input id="offlineCodeInput" class="w-full p-2 bg-gray-700 rounded" placeholder="Offline PIN" />
       <button id="launchOffline" class="bg-blue-600 px-4 py-2 rounded w-full">Open AP Link</button>
       <button id="closeOffline" class="bg-gray-600 px-2 py-1 rounded w-full">Close</button>
+    </div>
+  </div>
+
+  <div id="introModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden">
+    <div class="bg-gray-800 p-4 rounded space-y-4 w-full max-w-md text-center">
+      <h2 class="text-xl font-bold">Welcome to DaBox</h2>
+      <p>Use the big button to unlock the main relay. The MED button controls a second relay when available. If the device is offline follow the instructions for AP access.</p>
+      <button id="closeIntro" class="bg-blue-600 px-4 py-2 rounded w-full">Got it</button>
+    </div>
+  </div>
+
+  <div id="tokenModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden">
+    <div class="bg-gray-800 p-4 rounded space-y-4 w-full max-w-sm text-center">
+      <div class="space-y-2">
+        <select id="tokenRole" class="w-full p-2 bg-gray-700 rounded">
+          <option value="general">General</option>
+          <option value="sub">Sub Admin</option>
+        </select>
+        <label class="flex items-center gap-2 justify-center">
+          <input id="tokenMed" type="checkbox" class="form-checkbox" />
+          <span>Med Access</span>
+        </label>
+      </div>
+      <button id="createToken" class="bg-blue-600 px-4 py-2 rounded w-full">Generate</button>
+      <canvas id="qrCanvas" class="mx-auto hidden"></canvas>
+      <button id="copyToken" class="bg-green-600 px-4 py-2 rounded w-full hidden">Copy Link</button>
+      <button id="closeToken" class="bg-gray-600 px-2 py-1 rounded w-full">Close</button>
     </div>
   </div>
 

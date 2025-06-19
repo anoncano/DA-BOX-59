@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DaBox Admin Panel</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
   <style>#toast { transition: opacity 0.3s; } .hidden { opacity: 0; } body{font-family:system-ui,sans-serif; }</style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen p-4 sm:p-6 flex items-center justify-center">
@@ -39,6 +40,25 @@
     <div id="errorList" class="space-y-2"></div>
   </div>
 
+  <div id="tokenModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden">
+    <div class="bg-gray-800 p-4 rounded space-y-4 w-full max-w-sm text-center">
+      <div class="space-y-2">
+        <select id="admTokenRole" class="w-full p-2 bg-gray-700 rounded">
+          <option value="general">General</option>
+          <option value="sub">Sub Admin</option>
+        </select>
+        <label class="flex items-center gap-2 justify-center">
+          <input id="admTokenMed" type="checkbox" class="form-checkbox" />
+          <span>Med Access</span>
+        </label>
+      </div>
+      <button id="admCreateToken" class="bg-blue-600 px-4 py-2 rounded w-full">Generate</button>
+      <canvas id="admQr" class="mx-auto hidden"></canvas>
+      <button id="admCopyToken" class="bg-green-600 px-4 py-2 rounded w-full hidden">Copy Link</button>
+      <button id="admCloseToken" class="bg-gray-600 px-2 py-1 rounded w-full">Close</button>
+    </div>
+  </div>
+
   <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded hidden"></div>
 
   <script type="module">
@@ -57,7 +77,7 @@
       apiKey: "AIzaSyDF_BGAKz4NbsZPZmAcJofaYsccxtIIQ_o",
       authDomain: "da-box-59.firebaseapp.com",
       projectId: "da-box-59",
-      storageBucket: "da-box-59.firebasestorage.app",
+      storageBucket: "da-box-59.appspot.com",
       messagingSenderId: "382682873063",
       appId: "1:382682873063:web:e240e1bf8e14527b277642",
       databaseURL: "https://da-box-59-default-rtdb.asia-southeast1.firebasedatabase.app"
@@ -120,14 +140,41 @@
       }
     };
 
-    window.generateToken = async () => {
+    const tokenModal = $("tokenModal");
+    const admTokenRole = $("admTokenRole");
+    const admTokenMed = $("admTokenMed");
+    const admCreateToken = $("admCreateToken");
+    const admQr = $("admQr");
+    const admCopyToken = $("admCopyToken");
+    const admCloseToken = $("admCloseToken");
+
+    window.generateToken = () => {
+      admQr.classList.add("hidden");
+      admCopyToken.classList.add("hidden");
+      admTokenRole.value = "general";
+      admTokenMed.checked = false;
+      tokenModal.classList.remove("hidden");
+    };
+
+    admCloseToken.onclick = () => tokenModal.classList.add("hidden");
+    admCreateToken.onclick = async () => {
       const newToken = uuidv4();
+      const roleVal = admTokenRole.value;
+      const roles = roleVal === "sub" ? ["med"] : admTokenMed.checked ? ["med"] : [];
       await setDoc(doc(db, "registerTokens", newToken), {
-        createdAt: serverTimestamp(), used: false
+        createdAt: serverTimestamp(),
+        used: false,
+        role: roleVal,
+        roles
       });
       const url = `${location.origin}/register.html?token=${newToken}`;
-      await navigator.clipboard.writeText(url);
-      showNotif("Token copied:\n" + url);
+      QRCode.toCanvas(admQr, url, () => {});
+      admQr.classList.remove("hidden");
+      admCopyToken.classList.remove("hidden");
+      admCopyToken.onclick = async () => {
+        await navigator.clipboard.writeText(url);
+        showNotif("Token copied:\n" + url);
+      };
     };
 
     onAuthStateChanged(auth, async user => {

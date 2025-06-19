@@ -5,7 +5,8 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore, doc, setDoc, getDoc, updateDoc,
-  collection, getDocs, serverTimestamp, addDoc
+  collection, getDocs, serverTimestamp, addDoc,
+  onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getFunctions } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -15,10 +16,10 @@ const firebaseConfig = {
   apiKey: "AIzaSyDF_BGAKz4NbsZPZmAcJofaYsccxtIIQ_o",
   authDomain: "da-box-59.firebaseapp.com",
   projectId: "da-box-59",
-  storageBucket: "da-box-59.firebasestorage.app",
+  storageBucket: "da-box-59.appspot.com",
   messagingSenderId: "382682873063",
   appId: "1:382682873063:web:e240e1bf8e14527b277642",
-  databaseURL: "https://da-box-59-default-rtdb.asia-southeast1.firebasedatabase.app" // ✅ FIXED
+  databaseURL: "https://da-box-59-default-rtdb.asia-southeast1.firebasedatabase.app"
 };
 
 
@@ -84,10 +85,12 @@ if (location.href.includes("register")) {
           return;
         }
         const cred = await createUserWithEmailAndPassword(auth, email, pass);
+        const tok = tokSnap.data();
         await setDoc(doc(db, "users", cred.user.uid), {
           name,
-          role: "general",
-          roles: []
+          role: tok.role || "general",
+          roles: tok.roles || [],
+          introSeen: false
         });
         await updateDoc(doc(db, "registerTokens", token), { used: true });
         showNotif("Registration successful");
@@ -113,6 +116,17 @@ if (location.href.includes("general")) {
     const closeOffline = $("closeOffline");
     const launchOffline = $("launchOffline");
     const offlineCodeInput = $("offlineCodeInput");
+    const copySsid = $("copySsid");
+    const copyPass = $("copyPass");
+    const introModal = $("introModal");
+    const closeIntro = $("closeIntro");
+    const tokenModal = $("tokenModal");
+    const tokenRole = $("tokenRole");
+    const tokenMed = $("tokenMed");
+    const createToken = $("createToken");
+    const qrCanvas = $("qrCanvas");
+    const copyToken = $("copyToken");
+    const closeToken = $("closeToken");
     const errorText = $("errorText");
     const cancelError = $("cancelError");
     const sendError = $("sendError");
@@ -125,9 +139,29 @@ if (location.href.includes("general")) {
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) return location.href = "index.html";
-      const snap = await getDoc(doc(db, "users", user.uid));
-      const role = snap.data()?.role;
-      const rolesArr = snap.data()?.roles || [];
+      const uRef = doc(db, "users", user.uid);
+      const uSnap = await getDoc(uRef);
+      const role = uSnap.data()?.role;
+      const rolesArr = uSnap.data()?.roles || [];
+
+      if (!uSnap.data()?.introSeen) {
+        introModal.classList.remove("hidden");
+        closeIntro.onclick = async () => {
+          introModal.classList.add("hidden");
+          await updateDoc(uRef, { introSeen: true });
+        };
+      }
+
+      const applyMedToggle = (arr, r) => {
+        if (r === "sub" || arr.includes("med")) {
+          medToggle.classList.remove("hidden");
+        } else {
+          medToggle.classList.add("hidden");
+        }
+      };
+
+      applyMedToggle(rolesArr, role);
+      onSnapshot(uRef, (s) => applyMedToggle(s.data()?.roles || [], s.data()?.role));
 
       if (role !== "admin") {
         const hold = await getDoc(doc(db, "config", "relayHoldTime"));
@@ -208,35 +242,49 @@ if (location.href.includes("general")) {
         };
 
         toggleBtn.addEventListener("click", async () => {
-          if (unlocked) return;
+          if (unlocked || medUnlocked) return showNotif("Other relay active");
           unlocked = true;
           const ok1 = await updateRelay("unlocked");
           if (!ok1) showNotif("Failed to update relay state");
           // ESP will update the locked state after the hold time
         });
 
-        if (rolesArr.includes("med")) {
-          medToggle.classList.remove("hidden");
-          medToggle.addEventListener("click", async () => {
-            if (medUnlocked) return;
-            medUnlocked = true;
-            const ok1 = await updateMedRelay("unlocked");
-            if (!ok1) showNotif("Failed to update med state");
-            // ESP will update the locked state after the hold time
-          });
-        }
+        medToggle.addEventListener("click", async () => {
+          if (medUnlocked || unlocked) return showNotif("Other relay active");
+          medUnlocked = true;
+          const ok1 = await updateMedRelay("unlocked");
+          if (!ok1) showNotif("Failed to update med state");
+          // ESP will update the locked state after the hold time
+        });
 
         if (role === "sub") {
           copyBtn.classList.remove("hidden");
-          copyBtn.onclick = async () => {
+          copyBtn.onclick = () => {
+            qrCanvas.classList.add("hidden");
+            copyToken.classList.add("hidden");
+            tokenRole.value = "general";
+            tokenMed.checked = false;
+            tokenModal.classList.remove("hidden");
+          };
+          closeToken.onclick = () => tokenModal.classList.add("hidden");
+          createToken.onclick = async () => {
             const newToken = uuidv4();
+            const roleVal = tokenRole.value;
+            const roles = roleVal === "sub" ? ["med"] : tokenMed.checked ? ["med"] : [];
             await setDoc(doc(db, "registerTokens", newToken), {
               createdAt: serverTimestamp(),
-              used: false
+              used: false,
+              role: roleVal,
+              roles
             });
             const url = `${location.origin}/register.html?token=${newToken}`;
-            await navigator.clipboard.writeText(url);
-            showNotif("Token copied:\n" + url);
+            QRCode.toCanvas(qrCanvas, url, () => {});
+            qrCanvas.classList.remove("hidden");
+            copyToken.classList.remove("hidden");
+            copyToken.onclick = async () => {
+              await navigator.clipboard.writeText(url);
+              showNotif("Token copied:\n" + url);
+            };
           };
         }
 
@@ -246,6 +294,14 @@ if (location.href.includes("general")) {
           offlineCodeInput.value = offlinePin;
           showNotif("PIN copied:\n" + offlinePin);
           offlineModal.classList.remove("hidden");
+        };
+        copySsid.onclick = () => {
+          navigator.clipboard.writeText("DaBox-AP");
+          showNotif("SSID copied");
+        };
+        copyPass.onclick = () => {
+          navigator.clipboard.writeText("daboxpass");
+          showNotif("Password copied");
         };
 
         closeOffline.onclick = () => {
