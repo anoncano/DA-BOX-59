@@ -23,7 +23,9 @@ This app provides a simple interface for unlocking and locking a relay using Fir
 - Over-the-air updates are available via a simple `/update` endpoint so admins can upload new firmware directly from the web UI.
 - The general panel reads `/offlinePinGeneral` for normal users and `/offlinePinSub` for sub admins to display the current PIN when the device goes offline.
  - Relay hold time saved from the admin panel is also stored in the Realtime Database at `/relayHoldTime/ms`. Both toggles write the same value whenever they unlock so hardware sees the latest hold time. The ESP writes `locked` back when the cycle ends so the UI only reverts once the board confirms.
-- The general panel shows a green "Device online" message when a heartbeat is received from the ESP and turns red when the heartbeat stops.
+- The general panel shows a pulsing green heart when the ESP heartbeat is active and turns red when it stops.
+- Admins can lock user accounts from the admin panel so locked users cannot sign in.
+- Sub admins use a wizard to generate invitation links specifying the role and optional med access.
 - Admins can grant a **med** role. Users with this role see a second toggle on the general panel which writes to `medRelaystate`.
 - The ESP32 watches `medRelaystate` as well and unlocks the relay when this value becomes `unlocked`.
 Replace the Firebase configuration in `auth.js` with your own project details before deploying.

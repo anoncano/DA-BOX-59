@@ -11,15 +11,18 @@
   <div class="w-full max-w-xl space-y-6">
     <header class="flex justify-between items-center">
       <h1 class="text-3xl font-semibold">Admin Panel</h1>
-      <button onclick="logout()" class="text-red-400 hover:underline">Logout</button>
+      <div class="flex items-center gap-4">
+        <div id="hbAdmin" class="text-red-400 text-2xl animate-pulse">❤️</div>
+        <button onclick="logout()" class="text-red-400 hover:underline">Logout</button>
+      </div>
     </header>
 
     <button onclick="generateToken()" class="w-full bg-green-600 p-2 rounded">Generate &amp; Copy Token</button>
 
     <div class="grid gap-4 md:grid-cols-2">
       <div>
-        <label class="block mb-1">Inactivity Timeout (ms)</label>
-        <input id="inactivityTimeout" type="number" class="w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="3000" />
+        <label class="block mb-1">Inactivity Timeout (s)</label>
+        <input id="inactivityTimeout" type="number" class="w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="30" />
         <button onclick="saveTimeout()" class="mt-2 w-full bg-blue-500 p-2 rounded">Save</button>
       </div>
       <div>
@@ -31,6 +34,11 @@
         <label class="block mb-1">Firmware Update (.bin)</label>
         <input id="otaFile" type="file" accept=".bin" class="w-full text-sm bg-gray-700 border border-gray-600 rounded" />
         <button onclick="uploadOTA()" class="mt-2 w-full bg-purple-600 p-2 rounded">Upload</button>
+      </div>
+      <div>
+        <label class="block mb-1">Current Offline PINs</label>
+        <div class="text-sm">General: <span id="pinGen">--</span></div>
+        <div class="text-sm">Sub: <span id="pinSub">--</span></div>
       </div>
     </div>
 
@@ -69,6 +77,13 @@
     const rtdb = getDatabase(app);
     const $ = id => document.getElementById(id);
     let espIp = "";
+    let inactivitySec = 0;
+    let inactTimer;
+    const resetInact = () => {
+      clearTimeout(inactTimer);
+      if (inactivitySec > 0) inactTimer = setTimeout(() => logout(), inactivitySec * 1000);
+    };
+    ["click","keydown","mousemove","touchstart"].forEach(e => document.addEventListener(e, resetInact));
 
     const showNotif = msg => {
       const el = $("toast");
@@ -88,7 +103,11 @@
 
     window.saveTimeout = async () => {
       const val = parseInt($("inactivityTimeout").value);
-      if (!isNaN(val)) await setDoc(doc(db, "config", "inactivity"), { timeout: val });
+      if (!isNaN(val)) {
+        await setDoc(doc(db, "config", "inactivity"), { timeout: val });
+        inactivitySec = val;
+        resetInact();
+      }
       showNotif("Saved inactivity timeout");
     };
 
@@ -136,7 +155,12 @@
       if (snap.data()?.role !== "admin") return location.href = "general.html";
 
       const conf = await getDoc(doc(db, "config", "inactivity"));
-      if (conf.exists()) $("inactivityTimeout").value = conf.data().timeout || 3000;
+      if (conf.exists()) {
+        const t = conf.data().timeout || 0;
+        $("inactivityTimeout").value = t;
+        inactivitySec = t;
+        resetInact();
+      }
 
       const holdConf = await getDoc(doc(db, "config", "relayHoldTime"));
       if (holdConf.exists()) $("relayHoldTime").value = holdConf.data().ms || 3000;
@@ -144,7 +168,15 @@
       onValue(ref(rtdb, "heartbeat"), s => {
         const v = s.val();
         espIp = v && v.ip ? v.ip : "";
+        const heart = $("hbAdmin");
+        if (heart) {
+          heart.classList.toggle("text-green-400", !!v);
+          heart.classList.toggle("text-red-400", !v);
+        }
       });
+
+      onValue(ref(rtdb, "offlinePinGeneral"), s => $("pinGen").textContent = s.val() || "--");
+      onValue(ref(rtdb, "offlinePinSub"), s => $("pinSub").textContent = s.val() || "--");
 
       const snapUsers = await getDocs(collection(db, "users"));
       snapUsers.forEach(docSnap => {
@@ -163,25 +195,33 @@
               <input type="checkbox" class="medChk" />
               <span>Med</span>
             </label>
+            <label class="flex items-center gap-1 text-sm">
+              <input type="checkbox" class="lockChk" />
+              <span>Locked</span>
+            </label>
           </div>
         `;
         const sel = row.querySelector("select");
         const medChk = row.querySelector(".medChk");
+        const lockChk = row.querySelector(".lockChk");
         sel.value = u.role;
         const label = row.querySelector("div");
         const roles = new Set(u.roles || []);
         if (roles.has("med")) medChk.checked = true;
+        if (u.locked) lockChk.checked = true;
         const updateUser = async () => {
           medChk.checked ? roles.add("med") : roles.delete("med");
           await updateDoc(doc(db, "users", docSnap.id), {
             role: sel.value,
-            roles: Array.from(roles)
+            roles: Array.from(roles),
+            locked: lockChk.checked
           });
           label.textContent = `${u.name} → ${sel.value}`;
           showNotif("User updated");
         };
         sel.onchange = updateUser;
         medChk.onchange = updateUser;
+        lockChk.onchange = updateUser;
         $("userList").appendChild(row);
       });
 

@@ -54,6 +54,11 @@ window.login = async () => {
     const cred = await signInWithEmailAndPassword(auth, email, pass);
     const snap = await getDoc(doc(db, "users", cred.user.uid));
     if (!snap.exists()) return;
+    if (snap.data().locked) {
+      await signOut(auth);
+      $("msg").textContent = "Account locked";
+      return;
+    }
     const role = snap.data().role;
     if (role === "admin") location.href = "admin.html";
     else location.href = "general.html";
@@ -85,10 +90,15 @@ if (location.href.includes("register")) {
           return;
         }
         const cred = await createUserWithEmailAndPassword(auth, email, pass);
+        const data = tokSnap.data();
+        const role = data.role || "general";
+        const roles = [];
+        if (role === "general" && data.med) roles.push("med");
         await setDoc(doc(db, "users", cred.user.uid), {
           name,
-          role: "general",
-          roles: []
+          role,
+          roles,
+          locked: false
         });
         await updateDoc(doc(db, "registerTokens", token), { used: true });
         showNotif("Registration successful");
@@ -114,6 +124,18 @@ if (location.href.includes("general")) {
     const closeOffline = $("closeOffline");
     const launchOffline = $("launchOffline");
     const offlineCodeInput = $("offlineCodeInput");
+    const copyOffline = $("copyOffline");
+    const tokenModal = $("tokenModal");
+    const tokenStep1 = $("tokenStep1");
+    const tokenStep2 = $("tokenStep2");
+    const cancelToken = $("cancelToken");
+    const nextToken = $("nextToken");
+    const doneToken = $("doneToken");
+    const copyTokenLink = $("copyTokenLink");
+    const tokenLink = $("tokenLink");
+    const qrImg = $("qrImg");
+    const medFlag = $("medFlag");
+    const medWrap = $("medWrap");
     const errorText = $("errorText");
     const cancelError = $("cancelError");
     const sendError = $("sendError");
@@ -125,6 +147,13 @@ if (location.href.includes("general")) {
     let offlinePinSub = "";
     let offlinePin = "";
     let offlineShown = false;
+    let inactivitySec = 0;
+    let inactTimer;
+    const resetInact = () => {
+      clearTimeout(inactTimer);
+      if (inactivitySec > 0) inactTimer = setTimeout(() => logout(), inactivitySec * 1000);
+    };
+    ["click","keydown","mousemove","touchstart"].forEach(e => document.addEventListener(e, resetInact));
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) return location.href = "index.html";
@@ -162,9 +191,13 @@ if (location.href.includes("general")) {
           if (role === "sub") offlinePin = offlinePinSub;
         });
 
+        const conf = await getDoc(doc(db, "config", "inactivity"));
+        if (conf.exists()) inactivitySec = conf.data().timeout || 0;
+        resetInact();
+
         onValue(ref(rtdb, "heartbeat"), () => {
           hbLast = Date.now();
-          hbStatus.textContent = "Device online";
+          hbStatus.textContent = "❤️";
           hbStatus.classList.remove("text-red-400");
           hbStatus.classList.add("text-green-400");
           offlineShown = false;
@@ -172,7 +205,7 @@ if (location.href.includes("general")) {
         });
         setInterval(() => {
           if (Date.now() - hbLast > 15000) {
-            hbStatus.textContent = "Device offline";
+            hbStatus.textContent = "❤️";
             hbStatus.classList.remove("text-green-400");
             hbStatus.classList.add("text-red-400");
             if (!offlineShown) {
@@ -245,33 +278,60 @@ if (location.href.includes("general")) {
 
         if (role === "sub") {
           copyBtn.classList.remove("hidden");
-          copyBtn.onclick = async () => {
+          copyBtn.onclick = () => {
+            tokenModal.classList.remove("hidden");
+            tokenStep1.classList.remove("hidden");
+            tokenStep2.classList.add("hidden");
+            medFlag.checked = false;
+            medWrap.classList.remove("hidden");
+          };
+          cancelToken.onclick = () => tokenModal.classList.add("hidden");
+          nextToken.onclick = async () => {
+            const roleSel = Array.from(document.querySelectorAll('.roleRad')).find(r=>r.checked).value;
+            if (roleSel === 'sub') medWrap.classList.add('hidden');
             const newToken = uuidv4();
-            await setDoc(doc(db, "registerTokens", newToken), {
+            await setDoc(doc(db, 'registerTokens', newToken), {
               createdAt: serverTimestamp(),
-              used: false
+              used: false,
+              role: roleSel,
+              med: medFlag.checked
             });
             const url = `${location.origin}/register.html?token=${newToken}`;
-            await navigator.clipboard.writeText(url);
-            showNotif("Token copied:\n" + url);
+            tokenLink.value = url;
+            qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+            tokenStep1.classList.add('hidden');
+            tokenStep2.classList.remove('hidden');
           };
+          copyTokenLink.onclick = async () => {
+            await navigator.clipboard.writeText(tokenLink.value);
+            showNotif('Link copied');
+          };
+          doneToken.onclick = () => tokenModal.classList.add('hidden');
         }
 
         offlineBtn.onclick = () => {
           if (!offlinePin) return showNotif("No PIN available yet");
-          navigator.clipboard.writeText(offlinePin);
           offlineCodeInput.value = offlinePin;
-          showNotif("PIN copied:\n" + offlinePin);
           offlineModal.classList.remove("hidden");
+          resetInact();
+        };
+
+        copyOffline.onclick = async () => {
+          if (!offlinePin) return;
+          const link = `http://192.168.4.1/unlock?pin=${encodeURIComponent(offlinePin)}`;
+          await navigator.clipboard.writeText(`${offlinePin} ${link}`);
+          showNotif("Info copied");
         };
 
         closeOffline.onclick = () => {
           offlineModal.classList.add("hidden");
           offlineShown = false;
+          resetInact();
         };
         launchOffline.onclick = () => {
           const tok = offlineCodeInput.value.trim();
           if (tok) window.open(`http://192.168.4.1/unlock?pin=${encodeURIComponent(tok)}`, "_blank");
+          resetInact();
         };
 
         errorBtn.onclick = () => {

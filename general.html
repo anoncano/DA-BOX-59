@@ -8,7 +8,7 @@
   <style>#toast{transition:opacity .3s;} .hidden{opacity:0;} body{font-family:system-ui,sans-serif;}</style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen p-4 sm:p-6 flex flex-col items-center justify-center">
-  <div id="hbStatus" class="mb-4 text-red-400">Device offline</div>
+  <div id="hbStatus" class="mb-4 text-red-400 text-2xl animate-pulse">❤️</div>
   <div class="flex flex-col sm:flex-row gap-4">
     <button id="toggleBtn" class="w-60 h-60 sm:w-80 sm:h-80 rounded-xl shadow-lg text-5xl font-bold bg-red-600">LOCKED</button>
     <button id="medToggle" class="hidden w-60 h-60 sm:w-80 sm:h-80 rounded-xl shadow-lg text-5xl font-bold bg-red-600">MED LOCKED</button>
@@ -35,10 +35,31 @@
 
   <div id="offlineModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden">
     <div class="bg-gray-800 p-4 rounded space-y-4 w-full max-w-md text-center">
-      <p>Device appears offline. Connect to <b>da-box-59</b> and use the PIN below.</p>
-      <input id="offlineCodeInput" class="w-full p-2 bg-gray-700 rounded" placeholder="Offline PIN" />
-      <button id="launchOffline" class="bg-blue-600 px-4 py-2 rounded w-full">Open AP Link</button>
+      <p class="text-sm">Connect to <b>da-box-59</b> and open <b>http://192.168.4.1</b>.</p>
+      <input id="offlineCodeInput" readonly class="w-full p-2 bg-gray-700 rounded" placeholder="Offline PIN" />
+      <button id="copyOffline" class="bg-gray-700 px-4 py-2 rounded w-full">Copy PIN &amp; Link</button>
+      <button id="launchOffline" class="bg-blue-600 px-4 py-2 rounded w-full">Open Link</button>
       <button id="closeOffline" class="bg-gray-600 px-2 py-1 rounded w-full">Close</button>
+    </div>
+  </div>
+
+  <div id="tokenModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden">
+    <div id="tokenStep1" class="bg-gray-800 p-4 rounded space-y-4 w-full max-w-md">
+      <h3 class="text-lg font-semibold text-center">Invite User</h3>
+      <label class="flex items-center gap-2"><input type="radio" name="uRole" value="general" class="roleRad" checked>General</label>
+      <label class="flex items-center gap-2"><input type="radio" name="uRole" value="sub" class="roleRad">Sub Admin</label>
+      <label id="medWrap" class="flex items-center gap-2"><input type="checkbox" id="medFlag">Med Button</label>
+      <div class="flex justify-end gap-2">
+        <button id="cancelToken" class="bg-gray-600 px-4 py-2 rounded">Cancel</button>
+        <button id="nextToken" class="bg-blue-600 px-4 py-2 rounded">Next</button>
+      </div>
+    </div>
+    <div id="tokenStep2" class="bg-gray-800 p-4 rounded space-y-4 w-full max-w-md hidden text-center">
+      <p>Share this link with the user.</p>
+      <img id="qrImg" class="mx-auto" />
+      <input id="tokenLink" readonly class="w-full p-2 bg-gray-700 rounded text-sm" />
+      <button id="copyTokenLink" class="bg-gray-700 px-4 py-2 rounded w-full">Copy Link</button>
+      <button id="doneToken" class="bg-blue-600 px-4 py-2 rounded w-full">Done</button>
     </div>
   </div>
 
