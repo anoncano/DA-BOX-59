@@ -29,6 +29,7 @@
   <div id="errorModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden">
     <div class="bg-gray-800 p-4 rounded space-y-4 w-full max-w-md">
       <textarea id="errorText" rows="4" class="w-full p-2 bg-gray-700 rounded" placeholder="Describe the issue..."></textarea>
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="errorAck">Power was cut, waited, still error</label>
       <div class="flex justify-end gap-2">
         <button id="cancelError" class="bg-gray-600 px-4 py-2 rounded">Cancel</button>
         <button id="sendError" class="bg-blue-600 px-4 py-2 rounded">Send</button>
@@ -42,7 +43,7 @@
       <ol class="text-sm list-decimal list-inside space-y-1 text-left">
         <li>Join the <b>da-box-59</b> WiFi network.</li>
         <li>Open <b>http://192.168.4.1</b> in your browser.</li>
-        <li>Enter the PIN below to unlock.</li>
+        <li>Enter the PIN below to unlock or use the link.</li>
       </ol>
       <p class="text-xs text-gray-300">The Open Link button automatically includes your PIN.</p>
       <input id="offlineCodeInput" readonly class="w-full p-2 bg-gray-700 rounded text-lg text-center" placeholder="Offline PIN" />

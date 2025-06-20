@@ -1,7 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
   getAuth, signInWithEmailAndPassword, signOut,
-  createUserWithEmailAndPassword, onAuthStateChanged
+  createUserWithEmailAndPassword, onAuthStateChanged,
+  sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore, doc, setDoc, getDoc, updateDoc,
@@ -67,6 +68,17 @@ window.login = async () => {
   } finally {
     btn && (btn.disabled = false);
     loading && loading.classList.add("hidden");
+  }
+};
+
+window.resetPassword = async () => {
+  const email = $("email").value;
+  if (!email) return showNotif("Enter email");
+  try {
+    await sendPasswordResetEmail(auth, email);
+    showNotif("Reset email sent");
+  } catch (err) {
+    showNotif("Error: " + err.message);
   }
 };
 
@@ -323,7 +335,7 @@ if (location.href.includes("general")) {
 
         copyOffline.onclick = async () => {
           if (!offlinePin) return;
-          const link = `http://192.168.4.1/unlock?pin=${encodeURIComponent(offlinePin)}`;
+          const link = `http://192.168.4.1/?pin=${encodeURIComponent(offlinePin)}`;
           await navigator.clipboard.writeText(`${offlinePin} ${link}`);
           showNotif("Info copied");
         };
@@ -342,7 +354,7 @@ if (location.href.includes("general")) {
         });
         launchOffline.onclick = () => {
           const tok = offlineCodeInput.value.trim();
-          if (tok) window.open(`http://192.168.4.1/unlock?pin=${encodeURIComponent(tok)}`, "_blank");
+          if (tok) window.open(`http://192.168.4.1/?pin=${encodeURIComponent(tok)}`, "_blank");
           resetInact();
         };
 
@@ -353,7 +365,8 @@ if (location.href.includes("general")) {
         cancelError.onclick = () => modal.classList.add("hidden");
         sendError.onclick = async () => {
           const msg = errorText.value.trim();
-          if (!msg) return;
+          const ack = document.getElementById("errorAck").checked;
+          if (!msg || !ack) return;
           await addDoc(collection(db, "errors"), {
             message: msg,
             user: user.uid,
