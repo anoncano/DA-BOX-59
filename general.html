@@ -5,10 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DaBox General Panel</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>#toast{transition:opacity .3s;} .hidden{opacity:0;} body{font-family:system-ui,sans-serif;}</style>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+  <style>
+    #toast{transition:opacity .3s;} .hidden{opacity:0;} body{font-family:system-ui,sans-serif;}
+    .heart{animation:beat 1s infinite;}
+    @keyframes beat{0%,40%,80%,100%{transform:scale(1)}20%,60%{transform:scale(1.3)}}
+  </style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen p-4 sm:p-6 flex flex-col items-center justify-center">
-  <div id="hbStatus" class="mb-4 text-red-400">Device offline</div>
+  <div id="hbStatus" class="mb-4 heart text-red-400">❤️</div>
   <div class="flex flex-col sm:flex-row gap-4">
     <button id="toggleBtn" class="w-60 h-60 sm:w-80 sm:h-80 rounded-xl shadow-lg text-5xl font-bold bg-red-600">LOCKED</button>
     <button id="medToggle" class="hidden w-60 h-60 sm:w-80 sm:h-80 rounded-xl shadow-lg text-5xl font-bold bg-red-600">MED LOCKED</button>
@@ -16,7 +21,7 @@
   <div class="mt-6 flex flex-wrap gap-4 justify-center">
     <button onclick="logout()" class="bg-gray-700 px-4 py-2 rounded">Logout</button>
     <button onclick="deleteAccount()" class="bg-gray-700 px-4 py-2 rounded">Delete</button>
-    <button id="copyBtn" class="hidden bg-gray-700 px-4 py-2 rounded">Copy Token</button>
+    <button id="inviteBtn" class="hidden bg-gray-700 px-4 py-2 rounded">Invite User</button>
     <button id="offlineBtn" class="bg-gray-700 px-4 py-2 rounded">Offline PIN</button>
     <button id="errorBtn" class="bg-gray-700 px-4 py-2 rounded">Report Issue</button>
   </div>
@@ -35,10 +40,36 @@
 
   <div id="offlineModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden">
     <div class="bg-gray-800 p-4 rounded space-y-4 w-full max-w-md text-center">
-      <p>Device appears offline. Connect to <b>da-box-59</b> and use the PIN below.</p>
+      <p>Device appears offline. Connect to <b>da-box-59</b> and browse <code>http://192.168.4.1</code>.</p>
+      <p>Enter the PIN below when prompted.</p>
       <input id="offlineCodeInput" class="w-full p-2 bg-gray-700 rounded" placeholder="Offline PIN" />
-      <button id="launchOffline" class="bg-blue-600 px-4 py-2 rounded w-full">Open AP Link</button>
+      <div class="flex gap-2">
+        <button id="copyOffline" class="flex-1 bg-gray-600 px-2 py-1 rounded">Copy PIN</button>
+        <button id="launchOffline" class="flex-1 bg-blue-600 px-2 py-1 rounded">Open Link</button>
+      </div>
       <button id="closeOffline" class="bg-gray-600 px-2 py-1 rounded w-full">Close</button>
+    </div>
+  </div>
+
+  <div id="inviteModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden">
+    <div class="bg-gray-800 p-4 rounded space-y-4 w-full max-w-md text-center">
+      <div id="inviteStep1" class="space-y-2">
+        <p>Select role for new user</p>
+        <select id="inviteRole" class="w-full p-2 bg-gray-700 rounded">
+          <option value="general">general</option>
+          <option value="sub">sub</option>
+        </select>
+        <label id="inviteMedWrap" class="flex items-center gap-2 hidden justify-center">
+          <input id="inviteMed" type="checkbox" />
+          <span>Allow Med</span>
+        </label>
+        <button id="inviteNext" class="bg-blue-600 px-4 py-2 rounded w-full">Next</button>
+      </div>
+      <div id="inviteStep2" class="space-y-2 hidden">
+        <canvas id="inviteQR" class="mx-auto"></canvas>
+        <button id="copyInvite" class="bg-gray-600 px-4 py-2 rounded w-full">Copy Link</button>
+        <button id="closeInvite" class="bg-gray-600 px-2 py-1 rounded w-full">Done</button>
+      </div>
     </div>
   </div>
 

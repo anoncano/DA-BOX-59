@@ -54,6 +54,11 @@ window.login = async () => {
     const cred = await signInWithEmailAndPassword(auth, email, pass);
     const snap = await getDoc(doc(db, "users", cred.user.uid));
     if (!snap.exists()) return;
+    if (snap.data().locked) {
+      await signOut(auth);
+      $("msg").textContent = "❌ Account locked";
+      return;
+    }
     const role = snap.data().role;
     if (role === "admin") location.href = "admin.html";
     else location.href = "general.html";
@@ -85,10 +90,11 @@ if (location.href.includes("register")) {
           return;
         }
         const cred = await createUserWithEmailAndPassword(auth, email, pass);
+        const data = tokSnap.data();
         await setDoc(doc(db, "users", cred.user.uid), {
           name,
-          role: "general",
-          roles: []
+          role: data.role || "general",
+          roles: data.roles || []
         });
         await updateDoc(doc(db, "registerTokens", token), { used: true });
         showNotif("Registration successful");
@@ -106,7 +112,7 @@ if (location.href.includes("general")) {
   window.addEventListener("DOMContentLoaded", () => {
     const toggleBtn = $("toggleBtn");
     const medToggle = $("medToggle");
-    const copyBtn = $("copyBtn");
+    const inviteBtn = $("inviteBtn");
     const offlineBtn = $("offlineBtn");
     const errorBtn = $("errorBtn");
     const modal = $("errorModal");
@@ -117,6 +123,17 @@ if (location.href.includes("general")) {
     const errorText = $("errorText");
     const cancelError = $("cancelError");
     const sendError = $("sendError");
+    const copyOffline = $("copyOffline");
+    const inviteModal = $("inviteModal");
+    const inviteStep1 = $("inviteStep1");
+    const inviteStep2 = $("inviteStep2");
+    const inviteRole = $("inviteRole");
+    const inviteMedWrap = $("inviteMedWrap");
+    const inviteMed = $("inviteMed");
+    const inviteNext = $("inviteNext");
+    const inviteQR = $("inviteQR");
+    const copyInvite = $("copyInvite");
+    const closeInvite = $("closeInvite");
     const hbStatus = $("hbStatus");
     let unlocked = false;
     let medUnlocked = false;
@@ -164,7 +181,7 @@ if (location.href.includes("general")) {
 
         onValue(ref(rtdb, "heartbeat"), () => {
           hbLast = Date.now();
-          hbStatus.textContent = "Device online";
+          hbStatus.textContent = "❤️";
           hbStatus.classList.remove("text-red-400");
           hbStatus.classList.add("text-green-400");
           offlineShown = false;
@@ -172,7 +189,7 @@ if (location.href.includes("general")) {
         });
         setInterval(() => {
           if (Date.now() - hbLast > 15000) {
-            hbStatus.textContent = "Device offline";
+            hbStatus.textContent = "❤️";
             hbStatus.classList.remove("text-green-400");
             hbStatus.classList.add("text-red-400");
             if (!offlineShown) {
@@ -244,25 +261,47 @@ if (location.href.includes("general")) {
         });
 
         if (role === "sub") {
-          copyBtn.classList.remove("hidden");
-          copyBtn.onclick = async () => {
+          inviteBtn.classList.remove("hidden");
+          inviteBtn.onclick = () => {
+            inviteStep1.classList.remove("hidden");
+            inviteStep2.classList.add("hidden");
+            inviteMedWrap.classList.add("hidden");
+            inviteModal.classList.remove("hidden");
+          };
+          inviteRole.onchange = () => {
+            if (inviteRole.value === "general") inviteMedWrap.classList.remove("hidden");
+            else inviteMedWrap.classList.add("hidden");
+          };
+          inviteNext.onclick = async () => {
             const newToken = uuidv4();
+            const roles = inviteRole.value === "general" && inviteMed.checked ? ["med"] : [];
             await setDoc(doc(db, "registerTokens", newToken), {
               createdAt: serverTimestamp(),
-              used: false
+              used: false,
+              role: inviteRole.value,
+              roles
             });
             const url = `${location.origin}/register.html?token=${newToken}`;
-            await navigator.clipboard.writeText(url);
-            showNotif("Token copied:\n" + url);
+            inviteStep1.classList.add("hidden");
+            inviteStep2.classList.remove("hidden");
+            QRCode.toCanvas(inviteQR, url);
+            copyInvite.onclick = async () => {
+              await navigator.clipboard.writeText(url);
+              showNotif("Link copied");
+            };
           };
+          closeInvite.onclick = () => inviteModal.classList.add("hidden");
         }
 
         offlineBtn.onclick = () => {
           if (!offlinePin) return showNotif("No PIN available yet");
-          navigator.clipboard.writeText(offlinePin);
           offlineCodeInput.value = offlinePin;
-          showNotif("PIN copied:\n" + offlinePin);
           offlineModal.classList.remove("hidden");
+        };
+        copyOffline.onclick = async () => {
+          if (!offlinePin) return;
+          await navigator.clipboard.writeText(offlinePin);
+          showNotif("PIN copied");
         };
 
         closeOffline.onclick = () => {

@@ -42,14 +42,15 @@ WebServer server(80);
 bool otaStarted = false;
 String offlinePinGeneral = "0000";
 String offlinePinSub = "0000";
-const char* loginPage = "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'><style>body{font-family:sans-serif;text-align:center;padding-top:20px}</style></head><body><h1>DaBox Offline</h1><form action='/unlock'><input name='pin' placeholder='PIN'><button type='submit'>Enter</button></form></body></html>";
+const char* loginPage = "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'><style>body{font-family:sans-serif;text-align:center;padding-top:40px}button{padding:10px 20px;margin-top:10px;border-radius:6px}input{padding:8px;border-radius:4px}</style></head><body><h2>Enter PIN</h2><form action='/unlock'><input name='pin' placeholder='PIN'><br><button type='submit'>Continue</button></form></body></html>";
 
 String controlPage(const String& pin, bool sub) {
-  String page = "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'><style>body{font-family:sans-serif;text-align:center;padding-top:20px}</style></head><body><h1>DaBox Controls</h1>";
-  page += "<form action='/main'><input type='hidden' name='pin' value='" + pin + "'><button type='submit'>Unlock Main</button></form>";
-  if (sub) {
-    page += "<form action='/med'><input type='hidden' name='pin' value='" + pin + "'><button type='submit'>Unlock Med</button></form>";
-  }
+  String page = "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'><style>body{font-family:sans-serif;text-align:center;padding-top:40px}button.t{width:120px;height:120px;font-size:18px;margin:10px;border-radius:10px;background:#e53e3e;color:#fff}button.on{background:#16a34a}form{margin-top:10px}</style></head><body><h2>DaBox Controls</h2>";
+  page += "<script>function m(){fetch('/main?pin=" + pin + "').then(()=>document.getElementById('main').classList.add('on'));}";
+  if(sub){ page += "function d(){fetch('/med?pin=" + pin + "').then(()=>document.getElementById('med').classList.add('on'));}"; }
+  page += "</script>";
+  page += "<button id='main' class='t' onclick='m()'>Main</button>";
+  if(sub){ page += "<button id='med' class='t' onclick='d()'>Med</button>"; }
   page += "<form method='POST' action='/update' enctype='multipart/form-data'><input type='file' name='firmware'><button type='submit'>Update</button></form></body></html>";
   return page;
 }
