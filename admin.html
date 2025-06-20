@@ -39,6 +39,7 @@
         <label class="block mb-1">Current Offline PINs</label>
         <div class="text-sm">General: <span id="pinGen">--</span></div>
         <div class="text-sm">Sub: <span id="pinSub">--</span></div>
+        <div class="text-sm">Admin: <span id="pinAdm">--</span></div>
       </div>
     </div>
 
@@ -177,6 +178,7 @@
 
       onValue(ref(rtdb, "offlinePinGeneral"), s => $("pinGen").textContent = s.val() || "--");
       onValue(ref(rtdb, "offlinePinSub"), s => $("pinSub").textContent = s.val() || "--");
+      onValue(ref(rtdb, "offlinePinAdmin"), s => $("pinAdm").textContent = s.val() || "--");
 
       const snapUsers = await getDocs(collection(db, "users"));
       snapUsers.forEach(docSnap => {

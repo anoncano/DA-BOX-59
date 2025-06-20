@@ -18,10 +18,11 @@ This app provides a simple interface for unlocking and locking a relay using Fir
 - Admins can remove reports directly from the error list.
 - Sub users can generate invitation links via **Copy Token** on the general panel.
 - The `esp32_relay_watch.ino` sketch demonstrates how an ESP32 watches the database. It toggles pin **13** when `/relaystate` becomes `unlocked` and pin **12** when `/medRelaystate` is `unlocked`, then resets the relay after the configured hold time.
-- The ESP always hosts an open access point `da-box-59` at `http://192.168.4.1`. Enter the offline PIN to access controls. Two pins are stored: `/offlinePinGeneral` and `/offlinePinSub`, refreshed whenever WiFi reconnects.
+- The ESP always hosts an open access point `da-box-59` at `http://192.168.4.1`. Enter the offline PIN to access controls. Three pins are stored: `/offlinePinGeneral`, `/offlinePinSub` and `/offlinePinAdmin`, refreshed whenever WiFi reconnects.
 - If the primary WiFi can't be reached it tries a backup SSID before scanning for open networks and connecting to the strongest one so it stays online.
 - Over-the-air updates are available via a simple `/update` endpoint so admins can upload new firmware directly from the web UI.
-- The general panel reads `/offlinePinGeneral` for normal users and `/offlinePinSub` for sub admins to display the current PIN when the device goes offline.
+- The general panel reads `/offlinePinGeneral` for normal users, `/offlinePinSub` for sub admins and `/offlinePinAdmin` for admins to display the current PIN when the device goes offline.
+- Admins use `/offlinePinAdmin` to reach the offline page where they can also upload firmware updates.
  - Relay hold time saved from the admin panel is also stored in the Realtime Database at `/relayHoldTime/ms`. Both toggles write the same value whenever they unlock so hardware sees the latest hold time. The ESP writes `locked` back when the cycle ends so the UI only reverts once the board confirms.
  - The general panel shows a faint heart centered behind the toggles. It glows green when the ESP heartbeat updates and turns red when it stops.
 - Admins can lock user accounts from the admin panel so locked users cannot sign in.

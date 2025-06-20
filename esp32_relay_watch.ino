@@ -6,7 +6,7 @@
   The board locks the relay again after `/relayHoldTime/ms` milliseconds.
   It always hosts an open access point `da-box-59`. Visit
   `http://192.168.4.1` and enter the offline PIN to reach the control page.
-  Two pins are kept: `/offlinePinGeneral` and `/offlinePinSub`. They refresh whenever WiFi
+  Three pins are kept: `/offlinePinGeneral`, `/offlinePinSub` and `/offlinePinAdmin`. They refresh whenever WiFi
   connected again. A simple `/update` endpoint accepts firmware uploads.
 */
 
@@ -42,6 +42,7 @@ WebServer server(80);
 bool otaStarted = false;
 String offlinePinGeneral = "0000";
 String offlinePinSub = "0000";
+String offlinePinAdmin = "0000";
 const char* loginPage = "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'>"
   "<style>body{font-family:sans-serif;background:#111;color:#fff;text-align:center;padding-top:40px}"
   "input,button{padding:0.5rem;font-size:1rem;border-radius:4px;margin:0.25rem}"
@@ -49,15 +50,19 @@ const char* loginPage = "<!DOCTYPE html><html><head><meta name='viewport' conten
   "<input name='pin' placeholder='PIN'><button type='submit'>Enter</button>"
   "</form></body></html>";
 
-String controlPage(const String& pin, bool sub) {
+String controlPage(const String& pin, bool sub, bool admin) {
   String page = "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'>";
   page += "<style>body{font-family:sans-serif;background:#111;color:#fff;text-align:center;padding-top:20px}";
   page += "button{width:140px;height:140px;font-size:1.2rem;font-weight:bold;border:none;border-radius:12px;margin:0.5rem;background:#dc2626;color:#fff}";
   page += ".on{background:#16a34a}";
-  page += "</style><script>function send(p,id){fetch(p+\"?pin=\"+'" + pin + "').then(_=>{var b=document.getElementById(id);b.textContent='UNLOCKED';b.classList.add('on');b.disabled=true;});}</script></head><body><h1>DaBox Controls</h1><p>Tap a button to unlock. Sub admins can upload firmware below.</p>";
+  page += "</style><script>function send(p,id){fetch(p+\"?pin=\"+'" + pin + "').then(_=>{var b=document.getElementById(id);b.textContent='UNLOCKED';b.classList.add('on');b.disabled=true;});}</script></head><body><h1>DaBox Controls</h1>";
+  if(admin) page += "<p>Admin mode</p>"; else if(sub) page += "<p>Sub admin mode</p>"; else page += "<p>General mode</p>";
   page += "<button id='mainBtn' onclick=\"send('/main','mainBtn')\">LOCKED</button>";
-  if (sub) page += "<button id='medBtn' onclick=\"send('/med','medBtn')\">MED LOCKED</button>";
-  if (sub) page += "<form method='POST' action='/update' enctype='multipart/form-data' style='margin-top:1rem'><input type='file' name='firmware'><button type='submit'>Update</button></form>";
+  if (sub || admin) page += "<button id='medBtn' onclick=\"send('/med','medBtn')\">MED LOCKED</button>";
+  if (admin) {
+    page += String("<div style='margin-top:0.5rem'>Hold: ") + holdTime + "ms</div>";
+    page += String("<form method='POST' action='/update?pin=") + pin + "' enctype='multipart/form-data' style='margin-top:1rem'><input type='file' name='firmware'><button type='submit'>Update</button></form>";
+  }
   page += "</body></html>";
   return page;
 }
@@ -74,6 +79,7 @@ void beginOTA() {
 void generatePins() {
   offlinePinGeneral = String(random(1000, 10000));
   offlinePinSub = String(random(1000, 10000));
+  offlinePinAdmin = String(random(1000, 10000));
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
     http.begin(String(FIREBASE_URL) + "offlinePinGeneral.json");
@@ -83,6 +89,10 @@ void generatePins() {
     http.begin(String(FIREBASE_URL) + "offlinePinSub.json");
     http.addHeader("Content-Type", "application/json");
     http.PUT("\"" + offlinePinSub + "\"");
+    http.end();
+    http.begin(String(FIREBASE_URL) + "offlinePinAdmin.json");
+    http.addHeader("Content-Type", "application/json");
+    http.PUT("\"" + offlinePinAdmin + "\"");
     http.end();
   }
 }
@@ -168,18 +178,19 @@ void startAP() {
   server.on("/", [](){ server.send(200, "text/html", loginPage); });
   server.on("/unlock", []() {
     String pin = server.arg("pin");
+    bool admin = pin == offlinePinAdmin;
     bool sub = pin == offlinePinSub;
-    if (!sub && pin != offlinePinGeneral) {
+    if (!admin && !sub && pin != offlinePinGeneral) {
       server.sendHeader("Access-Control-Allow-Origin", "*");
       server.send(403, "text/plain", "Invalid pin");
       return;
     }
     server.sendHeader("Access-Control-Allow-Origin", "*");
-    server.send(200, "text/html", controlPage(pin, sub));
+    server.send(200, "text/html", controlPage(pin, sub, admin));
   });
   server.on("/main", [](){
     String pin = server.arg("pin");
-    if (pin != offlinePinGeneral && pin != offlinePinSub) {
+    if (pin != offlinePinGeneral && pin != offlinePinSub && pin != offlinePinAdmin) {
       server.sendHeader("Access-Control-Allow-Origin", "*");
       server.send(403, "text/plain", "Invalid pin");
       return;
@@ -194,7 +205,7 @@ void startAP() {
   });
   server.on("/med", [](){
     String pin = server.arg("pin");
-    if (pin != offlinePinSub) {
+    if (pin != offlinePinSub && pin != offlinePinAdmin) {
       server.sendHeader("Access-Control-Allow-Origin", "*");
       server.send(403, "text/plain", "Invalid pin");
       return;
@@ -208,6 +219,11 @@ void startAP() {
     server.send(200, "text/plain", "Med unlocking");
   });
   server.on("/update", HTTP_POST, [](){
+    if (server.arg("pin") != offlinePinAdmin) {
+      server.sendHeader("Access-Control-Allow-Origin", "*");
+      server.send(403, "text/plain", "Invalid pin");
+      return;
+    }
     server.sendHeader("Access-Control-Allow-Origin", "*");
     server.sendHeader("Connection", "close");
     server.send(200, "text/plain", Update.hasError() ? "FAIL" : "OK");
@@ -255,8 +271,8 @@ void loop() {
     }
   }
 
-  // Poll Firebase every 50ms
-  if ((!mainUnlocked || !medUnlocked) && now - lastCheck > 50 && WiFi.status() == WL_CONNECTED) {
+  // Poll Firebase frequently for near real-time updates
+  if ((!mainUnlocked || !medUnlocked) && now - lastCheck > 20 && WiFi.status() == WL_CONNECTED) {
     lastCheck = now;
 
     // refresh hold time
@@ -265,9 +281,12 @@ void loop() {
     int holdCode = httpHold.GET();
     if (holdCode == 200) {
       String holdPayload = httpHold.getString();
-      holdTime = holdPayload.toInt();
-      Serial.print("⏱️ Updated holdTime: ");
-      Serial.println(holdTime);
+      int newHold = holdPayload.toInt();
+      if (newHold != holdTime) {
+        holdTime = newHold;
+        Serial.print("⏱️ Updated holdTime: ");
+        Serial.println(holdTime);
+      }
     }
     httpHold.end();
 
