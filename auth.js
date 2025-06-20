@@ -121,6 +121,8 @@ if (location.href.includes("general")) {
     let unlocked = false;
     let medUnlocked = false;
     let holdMs = 3000;
+    let offlinePinGeneral = "";
+    let offlinePinSub = "";
     let offlinePin = "";
     let offlineShown = false;
 
@@ -151,8 +153,13 @@ if (location.href.includes("general")) {
         });
 
         let hbLast = 0;
-        onValue(ref(rtdb, "offlinePin"), s => {
-          offlinePin = s.val() || "";
+        onValue(ref(rtdb, "offlinePinGeneral"), s => {
+          offlinePinGeneral = s.val() || "";
+          if (role !== "sub") offlinePin = offlinePinGeneral;
+        });
+        onValue(ref(rtdb, "offlinePinSub"), s => {
+          offlinePinSub = s.val() || "";
+          if (role === "sub") offlinePin = offlinePinSub;
         });
 
         onValue(ref(rtdb, "heartbeat"), () => {

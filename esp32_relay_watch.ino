@@ -4,9 +4,9 @@
   When `/relaystate` becomes "unlocked" it toggles pin 13.
   When `/medRelaystate` becomes "unlocked" it toggles pin 12.
   The board locks the relay again after `/relayHoldTime/ms` milliseconds.
-  If WiFi is unavailable, it starts an access point `DaBox-AP` so users can
-  unlock by visiting `http://192.168.4.1/unlock?pin=1234` using the current
-  offline PIN stored at `/offlinePin`. The pin refreshes whenever WiFi is
+  It always hosts an open access point `da-box-59`. Visit
+  `http://192.168.4.1` and enter the offline PIN to reach the control page.
+  Two pins are kept: `/offlinePinGeneral` and `/offlinePinSub`. They refresh whenever WiFi
   connected again. A simple `/update` endpoint accepts firmware uploads.
 */
 
@@ -18,9 +18,11 @@
 
 #define WIFI_SSID "YOUR_WIFI_SSID"
 #define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
+#define WIFI_SSID2 "YOUR_WIFI_SSID2"
+#define WIFI_PASSWORD2 "YOUR_WIFI_PASSWORD2"
 
-#define AP_SSID "DaBox-AP"
-#define AP_PASSWORD "daboxpass"
+#define AP_SSID "da-box-59"
+#define AP_PASSWORD ""
 
 const char* FIREBASE_URL = "https://da-box-59-default-rtdb.asia-southeast1.firebasedatabase.app/";
 const int MAIN_RELAY_PIN = 13;
@@ -37,10 +39,20 @@ unsigned long lastHeartbeat = 0;
 unsigned long lastWiFiCheck = 0;
 bool wifiConnected = false;
 WebServer server(80);
-bool apMode = false;
 bool otaStarted = false;
-String offlinePin = "0000";
-const char* offlinePage = "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'><style>body{font-family:sans-serif;text-align:center;padding-top:20px}</style></head><body><h1>DaBox Offline</h1><form action='/unlock'><input name='pin' placeholder='PIN'><button type='submit'>Unlock</button></form><form method='POST' action='/update' enctype='multipart/form-data'><input type='file' name='firmware'><button type='submit'>Update</button></form></body></html>";
+String offlinePinGeneral = "0000";
+String offlinePinSub = "0000";
+const char* loginPage = "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'><style>body{font-family:sans-serif;text-align:center;padding-top:20px}</style></head><body><h1>DaBox Offline</h1><form action='/unlock'><input name='pin' placeholder='PIN'><button type='submit'>Enter</button></form></body></html>";
+
+String controlPage(const String& pin, bool sub) {
+  String page = "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'><style>body{font-family:sans-serif;text-align:center;padding-top:20px}</style></head><body><h1>DaBox Controls</h1>";
+  page += "<form action='/main'><input type='hidden' name='pin' value='" + pin + "'><button type='submit'>Unlock Main</button></form>";
+  if (sub) {
+    page += "<form action='/med'><input type='hidden' name='pin' value='" + pin + "'><button type='submit'>Unlock Med</button></form>";
+  }
+  page += "<form method='POST' action='/update' enctype='multipart/form-data'><input type='file' name='firmware'><button type='submit'>Update</button></form></body></html>";
+  return page;
+}
 
 void beginOTA() {
   if (otaStarted) return;
@@ -51,13 +63,18 @@ void beginOTA() {
   Serial.println("OTA ready");
 }
 
-void generatePin() {
-  offlinePin = String(random(1000, 10000));
+void generatePins() {
+  offlinePinGeneral = String(random(1000, 10000));
+  offlinePinSub = String(random(1000, 10000));
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
-    http.begin(String(FIREBASE_URL) + "offlinePin.json");
+    http.begin(String(FIREBASE_URL) + "offlinePinGeneral.json");
     http.addHeader("Content-Type", "application/json");
-    http.PUT("\"" + offlinePin + "\"");
+    http.PUT("\"" + offlinePinGeneral + "\"");
+    http.end();
+    http.begin(String(FIREBASE_URL) + "offlinePinSub.json");
+    http.addHeader("Content-Type", "application/json");
+    http.PUT("\"" + offlinePinSub + "\"");
     http.end();
   }
 }
@@ -85,7 +102,21 @@ bool connectWiFi(unsigned long timeout = 10000) {
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println("\n✅ WiFi Connected");
     beginOTA();
-    generatePin();
+    generatePins();
+    sendHeartbeat();
+    return true;
+  }
+  Serial.println("\n❌ Primary WiFi failed - trying backup");
+  WiFi.begin(WIFI_SSID2, WIFI_PASSWORD2);
+  start = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - start < timeout) {
+    Serial.print('.');
+    delay(500);
+  }
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\n✅ Connected to backup WiFi");
+    beginOTA();
+    generatePins();
     sendHeartbeat();
     return true;
   }
@@ -111,7 +142,7 @@ bool connectWiFi(unsigned long timeout = 10000) {
     if (WiFi.status() == WL_CONNECTED) {
       Serial.println("\n✅ Connected to open network");
       beginOTA();
-      generatePin();
+      generatePins();
       sendHeartbeat();
       return true;
     }
@@ -122,25 +153,51 @@ bool connectWiFi(unsigned long timeout = 10000) {
 
 
 void startAP() {
+  WiFi.mode(WIFI_AP_STA);
   WiFi.softAP(AP_SSID, AP_PASSWORD);
   Serial.print("Started AP at ");
   Serial.println(WiFi.softAPIP());
-  apMode = true;
-  server.on("/", [](){ server.send(200, "text/html", offlinePage); });
+  server.on("/", [](){ server.send(200, "text/html", loginPage); });
   server.on("/unlock", []() {
     String pin = server.arg("pin");
-    if (pin != offlinePin) {
+    bool sub = pin == offlinePinSub;
+    if (!sub && pin != offlinePinGeneral) {
       server.sendHeader("Access-Control-Allow-Origin", "*");
       server.send(403, "text/plain", "Invalid pin");
       return;
     }
-    if (!mainUnlocked && !medUnlocked) {
+    server.sendHeader("Access-Control-Allow-Origin", "*");
+    server.send(200, "text/html", controlPage(pin, sub));
+  });
+  server.on("/main", [](){
+    String pin = server.arg("pin");
+    if (pin != offlinePinGeneral && pin != offlinePinSub) {
+      server.sendHeader("Access-Control-Allow-Origin", "*");
+      server.send(403, "text/plain", "Invalid pin");
+      return;
+    }
+    if (!mainUnlocked) {
       mainUnlocked = true;
       digitalWrite(MAIN_RELAY_PIN, HIGH);
       mainStart = millis();
     }
     server.sendHeader("Access-Control-Allow-Origin", "*");
-    server.send(200, "text/plain", "Unlocking");
+    server.send(200, "text/plain", "Main unlocking");
+  });
+  server.on("/med", [](){
+    String pin = server.arg("pin");
+    if (pin != offlinePinSub) {
+      server.sendHeader("Access-Control-Allow-Origin", "*");
+      server.send(403, "text/plain", "Invalid pin");
+      return;
+    }
+    if (!medUnlocked) {
+      medUnlocked = true;
+      digitalWrite(MED_RELAY_PIN, HIGH);
+      medStart = millis();
+    }
+    server.sendHeader("Access-Control-Allow-Origin", "*");
+    server.send(200, "text/plain", "Med unlocking");
   });
   server.on("/update", HTTP_POST, [](){
     server.sendHeader("Access-Control-Allow-Origin", "*");
@@ -157,18 +214,11 @@ void startAP() {
       Update.end(true);
     }
   });
-  server.onNotFound([](){ server.send(200, "text/html", offlinePage); });
+  server.onNotFound([](){ server.send(200, "text/html", loginPage); });
   server.begin();
   beginOTA();
 }
 
-void stopAP() {
-  server.stop();
-  WiFi.softAPdisconnect(true);
-  apMode = false;
-  server.begin();
-  Serial.println("Stopped AP");
-}
 
 void setup() {
   Serial.begin(115200);
@@ -179,9 +229,7 @@ void setup() {
   digitalWrite(MED_RELAY_PIN, LOW);
 
   wifiConnected = connectWiFi();
-  if (!wifiConnected) {
-    startAP();
-  }
+  startAP();
 }
 
 void loop() {
@@ -190,17 +238,11 @@ void loop() {
   if (now - lastWiFiCheck > 10000) {
     lastWiFiCheck = now;
     if (WiFi.status() != WL_CONNECTED) {
-      if (!apMode) {
-        wifiConnected = connectWiFi();
-        if (!wifiConnected) startAP();
-      } else if (connectWiFi()) {
-        stopAP();
-        generatePin();
-        sendHeartbeat();
-      }
-    } else if (apMode) {
-      stopAP();
-      generatePin();
+      wifiConnected = false;
+      connectWiFi();
+    } else if (!wifiConnected) {
+      wifiConnected = true;
+      generatePins();
       sendHeartbeat();
     }
   }
@@ -284,15 +326,13 @@ void loop() {
     Serial.println("🔒 Med Relay OFF");
   }
 
-  if (!apMode && now - lastHeartbeat > 10000 && WiFi.status() == WL_CONNECTED) {
+  if (now - lastHeartbeat > 10000 && WiFi.status() == WL_CONNECTED) {
     lastHeartbeat = now;
     sendHeartbeat();
   }
 
-  if (apMode) {
-    server.handleClient();
-  }
-  if (WiFi.status() == WL_CONNECTED || apMode) {
+  server.handleClient();
+  if (WiFi.status() == WL_CONNECTED) {
     ArduinoOTA.handle();
   }
 }
