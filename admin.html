@@ -77,7 +77,7 @@
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import {
       getFirestore, doc, setDoc, getDoc, updateDoc,
-      collection, getDocs, serverTimestamp, deleteDoc
+      collection, getDocs, addDoc, deleteDoc, onSnapshot, serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
     import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
     import { v4 as uuidv4 } from "https://jspm.dev/uuid";
@@ -269,9 +269,10 @@
       });
 
       const kanbanRef = collection(db, "kanban");
+
       const renderTask = (id, data) => {
         const div = document.createElement("div");
-        div.className = "p-2 bg-gray-700 rounded flex justify-between items-center";
+        div.className = "p-2 bg-gray-700 rounded flex items-center gap-2";
         const title = document.createElement("span");
         title.textContent = data.title;
         const sel = document.createElement("select");
@@ -282,21 +283,40 @@
         sel.onchange = async () => {
           await updateDoc(doc(db, "kanban", id), { status: sel.value });
         };
+        const doneBtn = document.createElement("button");
+        doneBtn.className = "text-green-400 hover:underline text-sm";
+        doneBtn.textContent = "Done";
+        doneBtn.onclick = async () => {
+          await updateDoc(doc(db, "kanban", id), { status: "done" });
+        };
+        const del = document.createElement("button");
+        del.className = "text-red-400 hover:underline text-sm";
+        del.textContent = "Delete";
+        del.onclick = async () => {
+          await deleteDoc(doc(db, "kanban", id));
+        };
         div.appendChild(title);
         div.appendChild(sel);
-        const col = sel.value === "done" ? $("doneCol") : sel.value === "doing" ? $("doingCol") : $("todoCol");
-        col.appendChild(div);
+        div.appendChild(doneBtn);
+        div.appendChild(del);
+        return div;
       };
 
-      const snapTasks = await getDocs(kanbanRef);
-      snapTasks.forEach(d => renderTask(d.id, d.data()));
+      onSnapshot(kanbanRef, snap => {
+        $("todoCol").innerHTML = "";
+        $("doingCol").innerHTML = "";
+        $("doneCol").innerHTML = "";
+        snap.forEach(d => {
+          const col = d.data().status === "done" ? $("doneCol") : d.data().status === "doing" ? $("doingCol") : $("todoCol");
+          col.appendChild(renderTask(d.id, d.data()));
+        });
+      });
 
       window.addTask = async () => {
         const val = $("kanbanTask").value.trim();
         if (!val) return;
-        const docRef = await addDoc(kanbanRef, { title: val, status: "todo" });
+        await addDoc(kanbanRef, { title: val, status: "todo" });
         $("kanbanTask").value = "";
-        renderTask(docRef.id, { title: val, status: "todo" });
       };
     });
   </script>
