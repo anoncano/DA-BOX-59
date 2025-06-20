@@ -18,10 +18,10 @@ This app provides a simple interface for unlocking and locking a relay using Fir
 - Admins can remove reports directly from the error list.
 - Sub users can generate invitation links via **Copy Token** on the general panel.
 - The `esp32_relay_watch.ino` sketch demonstrates how an ESP32 watches the database. It toggles pin **13** when `/relaystate` becomes `unlocked` and pin **12** when `/medRelaystate` is `unlocked`, then resets the relay after the configured hold time.
-- If WiFi isn't available (or drops later), the sketch switches to a fallback access point `DaBox-AP` with a small web page at `http://192.168.4.1`. Use the displayed 4-digit PIN to unlock when offline. The pin is written to `/offlinePin` whenever WiFi reconnects.
-- If the configured WiFi can't be reached, the board scans for open networks and connects to the strongest one so it stays online.
+- The ESP always hosts an open access point `da-box-59` at `http://192.168.4.1`. Enter the offline PIN to access controls. Two pins are stored: `/offlinePinGeneral` and `/offlinePinSub`, refreshed whenever WiFi reconnects.
+- If the primary WiFi can't be reached it tries a backup SSID before scanning for open networks and connecting to the strongest one so it stays online.
 - Over-the-air updates are available via a simple `/update` endpoint so admins can upload new firmware directly from the web UI.
-- The general panel watches `/offlinePin` in the Realtime Database. When the board goes offline a modal shows the current PIN and explains how to reach the AP.
+- The general panel reads `/offlinePinGeneral` for normal users and `/offlinePinSub` for sub admins to display the current PIN when the device goes offline.
  - Relay hold time saved from the admin panel is also stored in the Realtime Database at `/relayHoldTime/ms`. Both toggles write the same value whenever they unlock so hardware sees the latest hold time. The ESP writes `locked` back when the cycle ends so the UI only reverts once the board confirms.
 - The general panel shows a green "Device online" message when a heartbeat is received from the ESP and turns red when the heartbeat stops.
 - Admins can grant a **med** role. Users with this role see a second toggle on the general panel which writes to `medRelaystate`.
