@@ -7,7 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <style>#toast{transition:opacity .3s;} .hidden{opacity:0;} body{font-family:system-ui,sans-serif;}</style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen p-4 sm:p-6 flex flex-col items-center justify-center">
+  <body class="bg-gradient-to-b from-gray-900 to-gray-800 text-white min-h-screen p-4 sm:p-6 flex flex-col items-center justify-center">
   <div id="hbStatus" class="mb-4 text-red-400 text-2xl animate-pulse">❤️</div>
   <div class="flex flex-col sm:flex-row gap-4">
     <button id="toggleBtn" class="w-60 h-60 sm:w-80 sm:h-80 rounded-xl shadow-lg text-5xl font-bold bg-red-600">LOCKED</button>
@@ -35,8 +35,13 @@
 
   <div id="offlineModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden">
     <div class="bg-gray-800 p-4 rounded space-y-4 w-full max-w-md text-center">
-      <p class="text-sm">Connect to <b>da-box-59</b> and open <b>http://192.168.4.1</b>.</p>
-      <input id="offlineCodeInput" readonly class="w-full p-2 bg-gray-700 rounded" placeholder="Offline PIN" />
+      <p class="text-sm">Follow these steps when the device goes offline:</p>
+      <ol class="text-sm list-decimal list-inside space-y-1 text-left">
+        <li>Join the <b>da-box-59</b> WiFi network.</li>
+        <li>Open <b>http://192.168.4.1</b> in your browser.</li>
+        <li>Enter the PIN below to unlock.</li>
+      </ol>
+      <input id="offlineCodeInput" readonly class="w-full p-2 bg-gray-700 rounded text-lg text-center" placeholder="Offline PIN" />
       <button id="copyOffline" class="bg-gray-700 px-4 py-2 rounded w-full">Copy PIN &amp; Link</button>
       <button id="launchOffline" class="bg-blue-600 px-4 py-2 rounded w-full">Open Link</button>
       <button id="closeOffline" class="bg-gray-600 px-2 py-1 rounded w-full">Close</button>

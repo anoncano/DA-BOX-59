@@ -28,4 +28,5 @@ This app provides a simple interface for unlocking and locking a relay using Fir
 - Sub admins use a wizard to generate invitation links specifying the role and optional med access.
 - Admins can grant a **med** role. Users with this role see a second toggle on the general panel which writes to `medRelaystate`.
 - The ESP32 watches `medRelaystate` as well and unlocks the relay when this value becomes `unlocked`.
+- When offline, the general panel instructs users to join the `da-box-59` AP and provides a button to copy the PIN and access link. Sub admins can upload firmware from the ESP's local page.
 Replace the Firebase configuration in `auth.js` with your own project details before deploying.

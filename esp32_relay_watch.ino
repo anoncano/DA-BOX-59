@@ -45,8 +45,8 @@ String offlinePinSub = "0000";
 const char* loginPage = "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'>"
   "<style>body{font-family:sans-serif;background:#111;color:#fff;text-align:center;padding-top:40px}"
   "input,button{padding:0.5rem;font-size:1rem;border-radius:4px;margin:0.25rem}"
-  "</style></head><body><h1>DaBox Offline</h1><form action='/unlock'>"
-  "<input name='pin' placeholder='PIN'><button type='submit'>Enter</button>" 
+  "</style></head><body><h1>DaBox Offline</h1><p>Enter your PIN to access controls.</p><form action='/unlock'>"
+  "<input name='pin' placeholder='PIN'><button type='submit'>Enter</button>"
   "</form></body></html>";
 
 String controlPage(const String& pin, bool sub) {
@@ -54,7 +54,7 @@ String controlPage(const String& pin, bool sub) {
   page += "<style>body{font-family:sans-serif;background:#111;color:#fff;text-align:center;padding-top:20px}";
   page += "button{width:140px;height:140px;font-size:1.2rem;font-weight:bold;border:none;border-radius:12px;margin:0.5rem;background:#dc2626;color:#fff}";
   page += ".on{background:#16a34a}";
-  page += "</style><script>function send(p,id){fetch(p+\"?pin=\"+'" + pin + "').then(_=>{var b=document.getElementById(id);b.textContent='UNLOCKED';b.classList.add('on');b.disabled=true;});}</script></head><body><h1>DaBox Controls</h1>";
+  page += "</style><script>function send(p,id){fetch(p+\"?pin=\"+'" + pin + "').then(_=>{var b=document.getElementById(id);b.textContent='UNLOCKED';b.classList.add('on');b.disabled=true;});}</script></head><body><h1>DaBox Controls</h1><p>Tap a button to unlock. Sub admins can upload firmware below.</p>";
   page += "<button id='mainBtn' onclick=\"send('/main','mainBtn')\">LOCKED</button>";
   if (sub) page += "<button id='medBtn' onclick=\"send('/med','medBtn')\">MED LOCKED</button>";
   if (sub) page += "<form method='POST' action='/update' enctype='multipart/form-data' style='margin-top:1rem'><input type='file' name='firmware'><button type='submit'>Update</button></form>";
