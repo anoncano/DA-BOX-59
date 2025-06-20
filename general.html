@@ -29,6 +29,10 @@
   <div id="errorModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden">
     <div class="bg-gray-800 p-4 rounded space-y-4 w-full max-w-md">
       <textarea id="errorText" rows="4" class="w-full p-2 bg-gray-700 rounded" placeholder="Describe the issue..."></textarea>
+      <label class="flex items-center gap-2 text-sm">
+        <input id="errorAck" type="checkbox" class="" />
+        I cut power, waited, and the issue persists
+      </label>
       <div class="flex justify-end gap-2">
         <button id="cancelError" class="bg-gray-600 px-4 py-2 rounded">Cancel</button>
         <button id="sendError" class="bg-blue-600 px-4 py-2 rounded">Send</button>

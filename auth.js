@@ -352,15 +352,17 @@ if (location.href.includes("general")) {
           errorText.value = "";
         };
         cancelError.onclick = () => modal.classList.add("hidden");
+        const errorAck = $("errorAck");
         sendError.onclick = async () => {
           const msg = errorText.value.trim();
-          if (!msg) return;
+          if (!msg || !errorAck.checked) return;
           await addDoc(collection(db, "errors"), {
             message: msg,
             user: user.uid,
             createdAt: serverTimestamp()
           });
           modal.classList.add("hidden");
+          errorAck.checked = false;
           showNotif("Issue reported");
         };
       }
