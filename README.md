@@ -26,4 +26,5 @@ This app provides a simple interface for unlocking and locking a relay using Fir
 - The general panel shows a green "Device online" message when a heartbeat is received from the ESP and turns red when the heartbeat stops.
 - Admins can grant a **med** role. Users with this role see a second toggle on the general panel which writes to `medRelaystate`.
 - The ESP32 watches `medRelaystate` as well and unlocks the relay when this value becomes `unlocked`.
+- Inactivity timeout in seconds can be set from the admin panel and affects all logged-in users.
 Replace the Firebase configuration in `auth.js` with your own project details before deploying.

@@ -41,6 +41,16 @@ const showNotif = (msg) => {
 };
 window.showNotif = showNotif;
 
+let logoutTimer;
+window.setupInactivity = (ms) => {
+  const reset = () => {
+    clearTimeout(logoutTimer);
+    logoutTimer = setTimeout(() => auth.currentUser && logout(), ms);
+  };
+  ['mousemove','keydown','click','touchstart'].forEach(ev => document.addEventListener(ev, reset));
+  reset();
+};
+
 // LOGIN
 window.login = async () => {
   const btn = $("loginBtn");
@@ -149,6 +159,10 @@ if (location.href.includes("general")) {
       const uSnap = await getDoc(uRef);
       const role = uSnap.data()?.role;
       const rolesArr = uSnap.data()?.roles || [];
+
+      const confSnap = await getDoc(doc(db, "config", "inactivity"));
+      const timeoutSec = confSnap.exists() ? confSnap.data().timeout || 300 : 300;
+      setupInactivity(timeoutSec * 1000);
 
       const applyMedToggle = (arr) => {
         if (arr.includes("med")) {
@@ -343,7 +357,10 @@ if (location.href.includes("admin")) {
       if (snap.data()?.role !== "admin") location.href = "general.html";
 
       const conf = await getDoc(doc(db, "config", "inactivity"));
-      if (conf.exists()) $("inactivityTimeout").value = conf.data().timeout || 3000;
+      let inactivitySec = 300;
+      if (conf.exists()) inactivitySec = conf.data().timeout || inactivitySec;
+      $("inactivityTimeout").value = inactivitySec;
+      setupInactivity(inactivitySec * 1000);
 
       const holdConf = await getDoc(doc(db, "config", "relayHoldTime"));
       if (holdConf.exists()) $("relayHoldTime").value = holdConf.data().ms || 3000;

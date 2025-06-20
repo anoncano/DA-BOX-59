@@ -5,7 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DaBox Admin Panel</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>#toast { transition: opacity 0.3s; } .hidden { opacity: 0; } body{font-family:system-ui,sans-serif; } .heart{animation:beat 1s infinite;}@keyframes beat{0%,40%,80%,100%{transform:scale(1)}20%,60%{transform:scale(1.3)}} </style>
+  <style>
+    #toast { transition: opacity 0.3s; }
+    .hidden { opacity: 0; }
+    body{font-family:system-ui,sans-serif; }
+    .heart{animation:beat 2s infinite;}
+    @keyframes beat{0%,60%,100%{transform:scale(1)}30%{transform:scale(1.15)}}
+  </style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen p-4 sm:p-6 flex items-center justify-center">
   <div class="w-full max-w-xl space-y-6">
@@ -13,14 +19,14 @@
       <h1 class="text-3xl font-semibold">Admin Panel</h1>
       <button onclick="logout()" class="text-red-400 hover:underline">Logout</button>
     </header>
-    <div id="hbStatus" class="heart text-red-400">❤️</div>
+    <div id="hbStatus" class="heart text-sm text-red-400">❤️</div>
 
     <button onclick="generateToken()" class="w-full bg-green-600 p-2 rounded">Generate &amp; Copy Token</button>
 
     <div class="grid gap-4 md:grid-cols-2">
       <div>
-        <label class="block mb-1">Inactivity Timeout (ms)</label>
-        <input id="inactivityTimeout" type="number" class="w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="3000" />
+        <label class="block mb-1">Inactivity Timeout (s)</label>
+        <input id="inactivityTimeout" type="number" class="w-full p-2 bg-gray-700 border border-gray-600 rounded" placeholder="300" />
         <button onclick="saveTimeout()" class="mt-2 w-full bg-blue-500 p-2 rounded">Save</button>
       </div>
       <div>
@@ -41,6 +47,7 @@
       <div id="pinSub">Sub: -</div>
     </div>
 
+    <h2 class="text-lg mt-4">Users</h2>
     <div id="userList" class="space-y-2"></div>
     <h2 class="text-xl mt-6">Error Reports</h2>
     <div id="errorList" class="space-y-2"></div>
@@ -87,6 +94,7 @@
         setTimeout(() => el.classList.add("hidden"), 300);
       }, 3000);
     };
+
 
     window.logout = async () => {
       await signOut(auth);
@@ -143,24 +151,14 @@
       if (snap.data()?.role !== "admin") return location.href = "general.html";
 
       const conf = await getDoc(doc(db, "config", "inactivity"));
-      let inactivityMs = 300000;
-      if (conf.exists()) {
-        inactivityMs = conf.data().timeout || inactivityMs;
-        $("inactivityTimeout").value = inactivityMs;
-      } else {
-        $("inactivityTimeout").value = inactivityMs;
-      }
+      let inactivitySec = 300;
+      if (conf.exists()) inactivitySec = conf.data().timeout || inactivitySec;
+      $("inactivityTimeout").value = inactivitySec;
+      setupInactivity(inactivitySec * 1000);
 
       const holdConf = await getDoc(doc(db, "config", "relayHoldTime"));
       if (holdConf.exists()) $("relayHoldTime").value = holdConf.data().ms || 3000;
 
-      let logoutTimer;
-      const resetTimer = () => {
-        clearTimeout(logoutTimer);
-        logoutTimer = setTimeout(logout, inactivityMs);
-      };
-      ['mousemove','keydown','click','touchstart'].forEach(ev => document.addEventListener(ev, resetTimer));
-      resetTimer();
 
       let hbLast = 0;
       onValue(ref(rtdb, "heartbeat"), s => {
