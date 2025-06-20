@@ -264,15 +264,27 @@
         const t = tSnap.data();
         const div = document.createElement('div');
         div.className = 'p-2 bg-gray-700 rounded flex justify-between items-center';
+        div.draggable = true;
+        div.dataset.id = tSnap.id;
         div.innerHTML = `<span>${t.text}</span><button class="delTask text-red-400">✖</button>`;
         div.querySelector('.delTask').onclick = async () => {
           await deleteDoc(doc(db, 'kanban', tSnap.id));
         };
+        div.ondragstart = e => e.dataTransfer.setData('id', tSnap.id);
         $(colIds[t.status] || 'todoCol').appendChild(div);
       };
       onSnapshot(collection(db, 'kanban'), snap => {
         Object.values(colIds).forEach(id => $(id).innerHTML = '');
         snap.forEach(renderTask);
+      });
+      Object.entries(colIds).forEach(([status, id]) => {
+        const col = $(id);
+        col.ondragover = e => e.preventDefault();
+        col.ondrop = async e => {
+          e.preventDefault();
+          const taskId = e.dataTransfer.getData('id');
+          if (taskId) await updateDoc(doc(db, 'kanban', taskId), { status });
+        };
       });
       $("addTask").onclick = async () => {
         const txt = $("newTask").value.trim();
