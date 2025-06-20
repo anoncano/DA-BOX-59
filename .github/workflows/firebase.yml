@@ -16,6 +16,14 @@ jobs:
       - run: npm ci
       - run: npm ci --prefix functions
       - run: npm test --silent
+      - name: Deploy Functions
+        if: github.event_name == 'push'
+        uses: w9jds/firebase-action@v14.7.0
+        with:
+          args: deploy --only functions
+        env:
+          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DABOX59 }}
+          PROJECT_ID: da-box-59
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: "${{ secrets.GITHUB_TOKEN }}"

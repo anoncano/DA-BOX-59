@@ -17,6 +17,8 @@ This app provides a simple interface for unlocking and locking a relay using Fir
    ```bash
    npm run deploy
    ```
+- The GitHub workflow now deploys both Hosting and Functions automatically
+  whenever the `main` branch updates.
 - The large toggle on the **General** panel switches between locked and unlocked, updating Firestore and the Realtime Database. The buttons stay in sync with the actual pin states via realtime listeners.
 - **Report Issue** opens a form so users can submit feedback. Reports show up for admins on their panel.
 - Users must confirm they've power-cycled the device before submitting a report.
