@@ -143,8 +143,13 @@
       if (snap.data()?.role !== "admin") return location.href = "general.html";
 
       const conf = await getDoc(doc(db, "config", "inactivity"));
-      let inactivityMs = 3000;
-      if (conf.exists()) inactivityMs = $("inactivityTimeout").value = conf.data().timeout || 3000;
+      let inactivityMs = 300000;
+      if (conf.exists()) {
+        inactivityMs = conf.data().timeout || inactivityMs;
+        $("inactivityTimeout").value = inactivityMs;
+      } else {
+        $("inactivityTimeout").value = inactivityMs;
+      }
 
       const holdConf = await getDoc(doc(db, "config", "relayHoldTime"));
       if (holdConf.exists()) $("relayHoldTime").value = holdConf.data().ms || 3000;
@@ -154,7 +159,7 @@
         clearTimeout(logoutTimer);
         logoutTimer = setTimeout(logout, inactivityMs);
       };
-      ['mousemove','keydown','click'].forEach(ev => document.addEventListener(ev, resetTimer));
+      ['mousemove','keydown','click','touchstart'].forEach(ev => document.addEventListener(ev, resetTimer));
       resetTimer();
 
       let hbLast = 0;
