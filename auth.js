@@ -75,10 +75,7 @@ window.resetPassword = async () => {
   const email = $("email").value;
   if (!email) return showNotif("Enter email");
   try {
-    await sendPasswordResetEmail(auth, email, {
-      url: location.origin + "/index.html",
-      handleCodeInApp: false,
-    });
+    await sendPasswordResetEmail(auth, email);
     showNotif("Reset email sent");
   } catch (err) {
     showNotif("Error: " + err.message);
