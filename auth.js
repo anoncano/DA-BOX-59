@@ -140,6 +140,7 @@ if (location.href.includes("general")) {
     const cancelError = $("cancelError");
     const sendError = $("sendError");
     const hbStatus = $("hbStatus");
+    const hbLine = $("hbLine");
     let unlocked = false;
     let medUnlocked = false;
     let holdMs = 3000;
@@ -200,14 +201,18 @@ if (location.href.includes("general")) {
           hbStatus.textContent = "❤️";
           hbStatus.classList.remove("text-red-400");
           hbStatus.classList.add("text-green-400");
+          hbLine.classList.remove("bg-red-400");
+          hbLine.classList.add("bg-green-400", "animate-pulse");
+          setTimeout(() => hbLine.classList.remove("animate-pulse"), 300);
           offlineShown = false;
-          offlineModal.classList.add("hidden");
         });
         setInterval(() => {
           if (Date.now() - hbLast > 15000) {
             hbStatus.textContent = "❤️";
             hbStatus.classList.remove("text-green-400");
             hbStatus.classList.add("text-red-400");
+            hbLine.classList.remove("bg-green-400", "animate-pulse");
+            hbLine.classList.add("bg-red-400");
             if (!offlineShown) {
               offlineShown = true;
               offlineCodeInput.value = offlinePin;
@@ -328,6 +333,13 @@ if (location.href.includes("general")) {
           offlineShown = false;
           resetInact();
         };
+        offlineModal.addEventListener("click", e => {
+          if (e.target === offlineModal) {
+            offlineModal.classList.add("hidden");
+            offlineShown = false;
+            resetInact();
+          }
+        });
         launchOffline.onclick = () => {
           const tok = offlineCodeInput.value.trim();
           if (tok) window.open(`http://192.168.4.1/unlock?pin=${encodeURIComponent(tok)}`, "_blank");
