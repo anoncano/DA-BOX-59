@@ -8,7 +8,7 @@
   <style>#toast{transition:opacity .3s;} .hidden{opacity:0;} body{font-family:system-ui,sans-serif;}</style>
 </head>
   <body class="bg-gradient-to-b from-gray-900 to-gray-800 text-white min-h-screen p-4 sm:p-6 flex flex-col items-center justify-center">
-  <div id="hbStatus" class="mb-4 text-red-400 text-2xl animate-pulse">❤️</div>
+  <div id="hbStatus" class="mb-4 text-red-400 text-2xl">❤️</div>
   <div class="flex flex-col sm:flex-row gap-4">
     <button id="toggleBtn" class="w-60 h-60 sm:w-80 sm:h-80 rounded-xl shadow-lg text-5xl font-bold bg-red-600">LOCKED</button>
     <button id="medToggle" class="hidden w-60 h-60 sm:w-80 sm:h-80 rounded-xl shadow-lg text-5xl font-bold bg-red-600">MED LOCKED</button>
@@ -41,6 +41,7 @@
         <li>Open <b>http://192.168.4.1</b> in your browser.</li>
         <li>Enter the PIN below to unlock.</li>
       </ol>
+      <p class="text-xs text-gray-300">The Open Link button automatically includes your PIN.</p>
       <input id="offlineCodeInput" readonly class="w-full p-2 bg-gray-700 rounded text-lg text-center" placeholder="Offline PIN" />
       <button id="copyOffline" class="bg-gray-700 px-4 py-2 rounded w-full">Copy PIN &amp; Link</button>
       <button id="launchOffline" class="bg-blue-600 px-4 py-2 rounded w-full">Open Link</button>
