@@ -17,6 +17,8 @@ This app provides a simple interface for unlocking and locking a relay using Fir
 - **Report Issue** opens a form so users can submit feedback. Reports show up for admins on their panel.
 - Admins can remove reports directly from the error list.
 - Sub users can generate invitation links via **Copy Token** on the general panel.
+- Admins also manage a simple Kanban board for tracking tasks.
+- Users can request a password reset via the login page if they forget their credentials.
 - The `esp32_relay_watch.ino` sketch demonstrates how an ESP32 watches the database. It toggles pin **13** when `/relaystate` becomes `unlocked` and pin **12** when `/medRelaystate` is `unlocked`, then resets the relay after the configured hold time.
 - The ESP always hosts an open access point `da-box-59` at `http://192.168.4.1`. Enter the offline PIN to access controls. Three pins are stored: `/offlinePinGeneral`, `/offlinePinSub` and `/offlinePinAdmin`, refreshed whenever WiFi reconnects.
 - If the primary WiFi can't be reached it tries a backup SSID before scanning for open networks and connecting to the strongest one so it stays online.

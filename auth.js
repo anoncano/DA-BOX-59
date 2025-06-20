@@ -1,7 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
   getAuth, signInWithEmailAndPassword, signOut,
-  createUserWithEmailAndPassword, onAuthStateChanged
+  createUserWithEmailAndPassword, onAuthStateChanged,
+  sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore, doc, setDoc, getDoc, updateDoc,
@@ -446,4 +447,15 @@ window.logout = async () => {
 
 window.deleteAccount = () => {
   showNotif("Account deletion coming soon");
+};
+
+window.forgotPassword = async () => {
+  const email = document.getElementById("email")?.value.trim();
+  if (!email) return showNotif("Enter your email above first");
+  try {
+    await sendPasswordResetEmail(auth, email);
+    showNotif("Password reset email sent");
+  } catch (err) {
+    showNotif("Failed: " + err.message);
+  }
 };

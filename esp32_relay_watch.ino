@@ -32,7 +32,7 @@ bool mainUnlocked = false;
 bool medUnlocked = false;
 unsigned long mainStart = 0;
 unsigned long medStart = 0;
-int holdTime = 200;
+int holdTime = 5;
 
 unsigned long lastCheck = 0;
 unsigned long lastHeartbeat = 0;
@@ -53,9 +53,9 @@ const char* loginPage = "<!DOCTYPE html><html><head><meta name='viewport' conten
 String controlPage(const String& pin, bool sub, bool admin) {
   String page = "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'>";
   page += "<style>body{font-family:sans-serif;background:#111;color:#fff;text-align:center;padding-top:20px}";
-  page += "button{width:140px;height:140px;font-size:1.2rem;font-weight:bold;border:none;border-radius:12px;margin:0.5rem;background:#dc2626;color:#fff}";
+  page += "button{width:140px;height:140px;font-size:1.2rem;font-weight:bold;border:none;border-radius:12px;margin:0.5rem;background:#dc2626;color:#fff;transition:background .2s}";
   page += ".on{background:#16a34a}";
-  page += "</style><script>function send(p,id){fetch(p+\"?pin=\"+'" + pin + "').then(_=>{var b=document.getElementById(id);b.textContent='UNLOCKED';b.classList.add('on');b.disabled=true;});}</script></head><body><h1>DaBox Controls</h1>";
+  page += "</style><script>function send(p,id){fetch(p+\"?pin=\"+'" + pin + "').then(_=>{var b=document.getElementById(id);b.textContent='UNLOCKED';b.classList.add('on');b.disabled=true;});}</script></head><body><h1>DaBox Controls</h1><p style='margin-bottom:0.5rem'>PIN: " + pin + "</p>";
   if(admin) page += "<p>Admin mode</p>"; else if(sub) page += "<p>Sub admin mode</p>"; else page += "<p>General mode</p>";
   page += "<button id='mainBtn' onclick=\"send('/main','mainBtn')\">LOCKED</button>";
   if (sub || admin) page += "<button id='medBtn' onclick=\"send('/med','medBtn')\">MED LOCKED</button>";
@@ -106,6 +106,19 @@ void sendHeartbeat() {
   http.PUT(body);
   http.end();
   Serial.println("💓 Heartbeat sent");
+}
+
+void fetchHoldTime() {
+  if (WiFi.status() != WL_CONNECTED) return;
+  HTTPClient http;
+  http.begin(String(FIREBASE_URL) + "relayHoldTime/ms.json");
+  int code = http.GET();
+  if (code == 200) {
+    holdTime = http.getString().toInt();
+    Serial.print("⏱️ HoldTime: ");
+    Serial.println(holdTime);
+  }
+  http.end();
 }
 
 bool connectWiFi(unsigned long timeout = 10000) {
@@ -253,6 +266,7 @@ void setup() {
   digitalWrite(MED_RELAY_PIN, LOW);
 
   wifiConnected = connectWiFi();
+  fetchHoldTime();
   startAP();
 }
 
@@ -267,12 +281,13 @@ void loop() {
     } else if (!wifiConnected) {
       wifiConnected = true;
       generatePins();
+      fetchHoldTime();
       sendHeartbeat();
     }
   }
 
   // Poll Firebase frequently for near real-time updates
-  if ((!mainUnlocked || !medUnlocked) && now - lastCheck > 20 && WiFi.status() == WL_CONNECTED) {
+  if ((!mainUnlocked || !medUnlocked) && now - lastCheck > 5 && WiFi.status() == WL_CONNECTED) {
     lastCheck = now;
 
     // refresh hold time

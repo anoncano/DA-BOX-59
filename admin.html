@@ -46,6 +46,26 @@
     <div id="userList" class="space-y-2"></div>
     <h2 class="text-xl mt-6">Error Reports</h2>
     <div id="errorList" class="space-y-2"></div>
+
+    <h2 class="text-xl mt-6">Kanban</h2>
+    <div id="kanban" class="grid grid-cols-3 gap-4">
+      <div>
+        <h3 class="text-center font-semibold">Todo</h3>
+        <div id="todoCol" class="space-y-2 mt-2 bg-gray-800 p-2 rounded"></div>
+      </div>
+      <div>
+        <h3 class="text-center font-semibold">Doing</h3>
+        <div id="doingCol" class="space-y-2 mt-2 bg-gray-800 p-2 rounded"></div>
+      </div>
+      <div>
+        <h3 class="text-center font-semibold">Done</h3>
+        <div id="doneCol" class="space-y-2 mt-2 bg-gray-800 p-2 rounded"></div>
+      </div>
+    </div>
+    <div class="mt-4 flex gap-2">
+      <input id="kanbanTask" class="flex-1 p-2 bg-gray-700 rounded" placeholder="New task">
+      <button onclick="addTask()" class="bg-blue-600 p-2 rounded">Add</button>
+    </div>
   </div>
 
   <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded hidden"></div>
@@ -187,7 +207,7 @@
         const row = document.createElement("div");
         row.className = "p-2 bg-gray-700 rounded flex justify-between items-center";
         row.innerHTML = `
-          <div>${u.name} → ${u.role}</div>
+          <div><span class="font-semibold">${u.name}</span> <span class="text-gray-300 text-sm">(${u.role})</span></div>
           <div class="flex items-center gap-2">
             <select class="bg-gray-800 text-white rounded px-2 py-1">
               <option value="general">general</option>
@@ -218,7 +238,7 @@
             roles: Array.from(roles),
             locked: lockChk.checked
           });
-          label.textContent = `${u.name} → ${sel.value}`;
+          label.innerHTML = `<span class="font-semibold">${u.name}</span> <span class="text-gray-300 text-sm">(${sel.value})</span>`;
           showNotif("User updated");
         };
         sel.onchange = updateUser;
@@ -247,6 +267,37 @@
         item.appendChild(del);
         $("errorList").appendChild(item);
       });
+
+      const kanbanRef = collection(db, "kanban");
+      const renderTask = (id, data) => {
+        const div = document.createElement("div");
+        div.className = "p-2 bg-gray-700 rounded flex justify-between items-center";
+        const title = document.createElement("span");
+        title.textContent = data.title;
+        const sel = document.createElement("select");
+        ["todo","doing","done"].forEach(s => {
+          const opt = document.createElement("option");
+          opt.value = s; opt.textContent = s; if (s === data.status) opt.selected = true; sel.appendChild(opt);
+        });
+        sel.onchange = async () => {
+          await updateDoc(doc(db, "kanban", id), { status: sel.value });
+        };
+        div.appendChild(title);
+        div.appendChild(sel);
+        const col = sel.value === "done" ? $("doneCol") : sel.value === "doing" ? $("doingCol") : $("todoCol");
+        col.appendChild(div);
+      };
+
+      const snapTasks = await getDocs(kanbanRef);
+      snapTasks.forEach(d => renderTask(d.id, d.data()));
+
+      window.addTask = async () => {
+        const val = $("kanbanTask").value.trim();
+        if (!val) return;
+        const docRef = await addDoc(kanbanRef, { title: val, status: "todo" });
+        $("kanbanTask").value = "";
+        renderTask(docRef.id, { title: val, status: "todo" });
+      };
     });
   </script>
 </body>
