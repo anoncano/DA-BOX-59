@@ -349,9 +349,9 @@ if (location.href.includes("general")) {
           resetInact();
         };
 
-        deleteBtn.onclick = () => {
+        deleteBtn.addEventListener('click', () => {
           deleteModal.classList.remove('hidden');
-        };
+        });
 
         copyOffline.onclick = async () => {
           if (!offlinePin) return;
