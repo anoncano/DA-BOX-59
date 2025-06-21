@@ -9,7 +9,7 @@ import {
   collection, getDocs, serverTimestamp, addDoc,
   onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { getFunctions } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 import { v4 as uuidv4 } from "https://jspm.dev/uuid";
 
@@ -137,6 +137,9 @@ if (location.href.includes("general")) {
     const copyBtn = $("copyBtn");
     const offlineBtn = $("offlineBtn");
     const errorBtn = $("errorBtn");
+    const deleteModal = $("deleteModal");
+    const cancelDel = $("cancelDel");
+    const confirmDel = $("confirmDel");
     const modal = $("errorModal");
     const offlineModal = $("offlineModal");
     const closeOffline = $("closeOffline");
@@ -387,6 +390,19 @@ if (location.href.includes("general")) {
           modal.classList.add("hidden");
           showNotif("Issue reported");
         };
+
+        cancelDel.onclick = () => deleteModal.classList.add("hidden");
+        confirmDel.onclick = async () => {
+          confirmDel.disabled = true;
+          try {
+            await httpsCallable(functions, 'deleteAccount')();
+            showNotif('Account deleted');
+            setTimeout(() => location.href = 'index.html', 500);
+          } catch (e) {
+            showNotif('Error: ' + e.message);
+            confirmDel.disabled = false;
+          }
+        };
       }
     });
   });
@@ -470,5 +486,6 @@ window.logout = async () => {
 };
 
 window.deleteAccount = () => {
-  showNotif("Account deletion coming soon");
+  const modal = document.getElementById('deleteModal');
+  if (modal) modal.classList.remove('hidden');
 };

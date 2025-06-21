@@ -264,7 +264,25 @@
         div.className = 'p-2 bg-gray-700 rounded flex justify-between items-center';
         div.setAttribute('draggable', 'true');
         div.dataset.id = tSnap.id;
-        div.innerHTML = `<span>${t.text}</span><button class="delTask text-red-400">✖</button>`;
+        div.innerHTML = `<span class="taskText flex-1">${t.text}</span><button class="delTask text-red-400 ml-2">✖</button>`;
+        const span = div.querySelector('.taskText');
+        span.ondblclick = () => {
+          const inp = document.createElement('input');
+          inp.value = span.textContent;
+          inp.className = 'bg-gray-600 p-1 rounded w-full';
+          div.replaceChild(inp, span);
+          inp.focus();
+          const save = async () => {
+            const val = inp.value.trim();
+            div.replaceChild(span, inp);
+            if (val && val !== span.textContent) {
+              span.textContent = val;
+              await updateDoc(doc(db, 'kanban', tSnap.id), { text: val });
+            }
+          };
+          inp.onblur = save;
+          inp.onkeydown = e => e.key === 'Enter' && inp.blur();
+        };
         div.querySelector('.delTask').onclick = async () => {
           await deleteDoc(doc(db, 'kanban', tSnap.id));
         };
