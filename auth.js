@@ -2,12 +2,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import {
   getAuth, signInWithEmailAndPassword, signOut,
   createUserWithEmailAndPassword, onAuthStateChanged,
-  sendPasswordResetEmail
+  sendPasswordResetEmail, deleteUser
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore, doc, setDoc, getDoc, updateDoc,
   collection, getDocs, serverTimestamp, addDoc,
-  onSnapshot
+  onSnapshot, deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -396,12 +396,20 @@ if (location.href.includes("general")) {
           confirmDel.disabled = true;
           try {
             await httpsCallable(functions, 'deleteAccount')();
-            showNotif('Account deleted');
-            setTimeout(() => location.href = 'index.html', 500);
           } catch (e) {
-            showNotif('Error: ' + e.message);
-            confirmDel.disabled = false;
+            try {
+              if (auth.currentUser) {
+                await deleteUser(auth.currentUser);
+                await deleteDoc(doc(db, 'users', auth.currentUser.uid));
+              }
+            } catch (err) {
+              showNotif('Error: ' + err.message);
+              confirmDel.disabled = false;
+              return;
+            }
           }
+          showNotif('Account deleted');
+          setTimeout(() => location.href = 'index.html', 500);
         };
       }
     });

@@ -30,7 +30,7 @@ This app provides a simple interface for unlocking and locking a relay using Fir
  - The general panel shows a faint heart centered behind the toggles. It glows green when the ESP heartbeat updates and turns red when it stops.
 - Admins can lock user accounts from the admin panel so locked users cannot sign in.
 - Sub admins use a wizard to generate invitation links specifying the role and optional med access.
-- Users can delete their account from the general panel after confirming in a modal.
+- Users can delete their account from the general panel after confirming in a modal. The deletion removes the Auth account and the user's Firestore document.
 - Press <kbd>Enter</kbd> in the password field to submit the login form quickly.
 - Admins can grant a **med** role. Users with this role see a second toggle on the general panel which writes to `medRelaystate`.
 - The ESP32 watches `medRelaystate` as well and unlocks the relay when this value becomes `unlocked`.
