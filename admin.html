@@ -55,6 +55,7 @@
     <div class="mt-2 flex gap-2">
       <input id="newTask" class="flex-1 p-2 bg-gray-700 rounded" placeholder="New task" />
       <button id="addTask" class="bg-blue-600 p-2 rounded">Add</button>
+      <button id="clearDone" class="bg-gray-700 p-2 rounded">Clear Done</button>
     </div>
   </div>
 
@@ -68,7 +69,7 @@
     import {
       getFirestore, doc, setDoc, getDoc, updateDoc,
       collection, getDocs, serverTimestamp, deleteDoc,
-      addDoc, onSnapshot
+      addDoc, onSnapshot, query, orderBy, where
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
     import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
     import { v4 as uuidv4 } from "https://jspm.dev/uuid";
@@ -292,7 +293,7 @@
         });
         $(colIds[t.status] || 'todoCol').appendChild(div);
       };
-      onSnapshot(collection(db, 'kanban'), snap => {
+      onSnapshot(query(collection(db, 'kanban'), orderBy('createdAt')), snap => {
         Object.values(colIds).forEach(id => $(id).innerHTML = '');
         snap.forEach(renderTask);
       });
@@ -310,6 +311,12 @@
         if (!txt) return;
         await addDoc(collection(db, 'kanban'), { text: txt, status: 'todo', createdAt: serverTimestamp() });
         $("newTask").value = '';
+      };
+
+      $("clearDone").onclick = async () => {
+        const q = query(collection(db, 'kanban'), where('status', '==', 'done'));
+        const snap = await getDocs(q);
+        await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
       };
     });
   </script>
