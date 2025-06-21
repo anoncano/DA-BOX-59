@@ -17,7 +17,7 @@
       </div>
     </header>
 
-    <button onclick="generateToken()" class="w-full bg-green-600 p-2 rounded">Generate &amp; Copy Token</button>
+    <button onclick="generateToken()" class="w-full bg-green-600 p-2 rounded">Invite Users</button>
 
     <div class="grid gap-4 md:grid-cols-2">
       <div>
@@ -48,9 +48,9 @@
     <div id="errorList" class="space-y-2"></div>
     <h2 class="text-xl mt-6">Kanban</h2>
     <div id="kanbanBoard" class="grid grid-cols-3 gap-4">
-      <div><h3 class="text-lg">Todo</h3><div id="todoCol" class="space-y-2"></div></div>
-      <div><h3 class="text-lg">Doing</h3><div id="doingCol" class="space-y-2"></div></div>
-      <div><h3 class="text-lg">Done</h3><div id="doneCol" class="space-y-2"></div></div>
+      <div><h3 class="text-lg">Todo</h3><div id="todoCol" class="space-y-2 min-h-32 p-2 bg-gray-800 rounded"></div></div>
+      <div><h3 class="text-lg">Doing</h3><div id="doingCol" class="space-y-2 min-h-32 p-2 bg-gray-800 rounded"></div></div>
+      <div><h3 class="text-lg">Done</h3><div id="doneCol" class="space-y-2 min-h-32 p-2 bg-gray-800 rounded"></div></div>
     </div>
     <div class="mt-2 flex gap-2">
       <input id="newTask" class="flex-1 p-2 bg-gray-700 rounded" placeholder="New task" />
@@ -198,7 +198,7 @@
         const row = document.createElement("div");
         row.className = "p-2 bg-gray-700 rounded flex justify-between items-center";
         row.innerHTML = `
-          <div class="flex flex-col"><span class="font-medium name">${u.name}</span><span class="text-xs text-gray-300 role">${u.role}</span></div>
+          <div class="font-medium name">${u.name}</div>
           <div class="flex items-center gap-2">
             <select class="bg-gray-800 text-white rounded px-2 py-1">
               <option value="general">general</option>
@@ -218,7 +218,6 @@
         const medChk = row.querySelector(".medChk");
         const lockChk = row.querySelector(".lockChk");
         sel.value = u.role;
-        const label = row.querySelector("div");
         const roles = new Set(u.roles || []);
         if (roles.has("med")) medChk.checked = true;
         if (u.locked) lockChk.checked = true;
@@ -229,7 +228,6 @@
             roles: Array.from(roles),
             locked: lockChk.checked
           });
-          label.querySelector('.role').textContent = sel.value;
           showNotif("User updated");
         };
         sel.onchange = updateUser;

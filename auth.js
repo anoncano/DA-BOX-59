@@ -77,6 +77,12 @@ window.resetPassword = async () => {
   try {
     await sendPasswordResetEmail(auth, email);
     showNotif("Reset email sent");
+    const m = $("resetModal");
+    if (m) {
+      m.classList.remove("hidden");
+      const c = $("resetClose");
+      if (c) c.onclick = () => m.classList.add("hidden");
+    }
   } catch (err) {
     showNotif("Error: " + err.message);
   }
@@ -148,6 +154,13 @@ if (location.href.includes("general")) {
     const qrImg = $("qrImg");
     const medFlag = $("medFlag");
     const medWrap = $("medWrap");
+    const roleRads = document.querySelectorAll('.roleRad');
+    const updateMedVisibility = () => {
+      const sel = Array.from(roleRads).find(r => r.checked)?.value || 'general';
+      if (sel === 'sub') medWrap.classList.add('hidden');
+      else medWrap.classList.remove('hidden');
+    };
+    roleRads.forEach(r => r.addEventListener('change', updateMedVisibility));
     const errorText = $("errorText");
     const cancelError = $("cancelError");
     const sendError = $("sendError");
@@ -300,12 +313,11 @@ if (location.href.includes("general")) {
             tokenStep1.classList.remove("hidden");
             tokenStep2.classList.add("hidden");
             medFlag.checked = false;
-            medWrap.classList.remove("hidden");
+            updateMedVisibility();
           };
           cancelToken.onclick = () => tokenModal.classList.add("hidden");
           nextToken.onclick = async () => {
-            const roleSel = Array.from(document.querySelectorAll('.roleRad')).find(r=>r.checked).value;
-            if (roleSel === 'sub') medWrap.classList.add('hidden');
+            const roleSel = Array.from(roleRads).find(r => r.checked).value;
             const newToken = uuidv4();
             await setDoc(doc(db, 'registerTokens', newToken), {
               createdAt: serverTimestamp(),

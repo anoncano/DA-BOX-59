@@ -16,8 +16,8 @@ This app provides a simple interface for unlocking and locking a relay using Fir
 - The large toggle on the **General** panel switches between locked and unlocked, updating Firestore and the Realtime Database. The buttons stay in sync with the actual pin states via realtime listeners.
 - **Report Issue** opens a form so users can submit feedback. Reports show up for admins on their panel.
 - Admins can remove reports directly from the error list.
-- Login page includes a password reset button that emails a Firebase reset link using Firebase's default template.
-- Sub users can generate invitation links via **Copy Token** on the general panel.
+ - Login page includes a password reset button that emails a Firebase reset link using Firebase's default template and shows a reminder modal to check spam folders.
+ - Sub users can invite others via **Invite Users** on the general panel.
 - The `esp32_relay_watch.ino` sketch demonstrates how an ESP32 watches the database. It toggles pin **13** when `/relaystate` becomes `unlocked` and pin **12** when `/medRelaystate` is `unlocked`, then resets the relay after the configured hold time.
 - The ESP always hosts an open access point `da-box-59` at `http://192.168.4.1`. Enter the offline PIN to access controls. Three pins are stored: `/offlinePinGeneral`, `/offlinePinSub` and `/offlinePinAdmin`, refreshed whenever WiFi reconnects.
 - Links generated for offline use now open `http://192.168.4.1/?pin=PIN` so the control page loads immediately.
