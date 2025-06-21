@@ -32,7 +32,7 @@ bool mainUnlocked = false;
 bool medUnlocked = false;
 unsigned long mainStart = 0;
 unsigned long medStart = 0;
-int holdTime = 200;
+int holdTime = 5;
 
 unsigned long lastCheck = 0;
 unsigned long lastHeartbeat = 0;
@@ -175,7 +175,16 @@ void startAP() {
   WiFi.softAP(AP_SSID, AP_PASSWORD);
   Serial.print("Started AP at ");
   Serial.println(WiFi.softAPIP());
-  server.on("/", [](){ server.send(200, "text/html", loginPage); });
+  server.on("/", [](){
+    String pin = server.arg("pin");
+    bool admin = pin == offlinePinAdmin;
+    bool sub = pin == offlinePinSub;
+    if (pin.length() && (admin || sub || pin == offlinePinGeneral)) {
+      server.send(200, "text/html", controlPage(pin, sub, admin));
+    } else {
+      server.send(200, "text/html", loginPage);
+    }
+  });
   server.on("/unlock", []() {
     String pin = server.arg("pin");
     bool admin = pin == offlinePinAdmin;
@@ -272,7 +281,7 @@ void loop() {
   }
 
   // Poll Firebase frequently for near real-time updates
-  if ((!mainUnlocked || !medUnlocked) && now - lastCheck > 20 && WiFi.status() == WL_CONNECTED) {
+  if ((!mainUnlocked || !medUnlocked) && now - lastCheck > 10 && WiFi.status() == WL_CONNECTED) {
     lastCheck = now;
 
     // refresh hold time

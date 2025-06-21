@@ -1,14 +1,15 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
   getAuth, signInWithEmailAndPassword, signOut,
-  createUserWithEmailAndPassword, onAuthStateChanged
+  createUserWithEmailAndPassword, onAuthStateChanged,
+  sendPasswordResetEmail, deleteUser
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore, doc, setDoc, getDoc, updateDoc,
   collection, getDocs, serverTimestamp, addDoc,
-  onSnapshot
+  onSnapshot, deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { getFunctions } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 import { v4 as uuidv4 } from "https://jspm.dev/uuid";
 
@@ -70,6 +71,23 @@ window.login = async () => {
   }
 };
 
+window.resetPassword = async () => {
+  const email = $("email").value;
+  if (!email) return showNotif("Enter email");
+  try {
+    await sendPasswordResetEmail(auth, email);
+    showNotif("Reset email sent");
+    const m = $("resetModal");
+    if (m) {
+      m.classList.remove("hidden");
+      const c = $("resetClose");
+      if (c) c.onclick = () => m.classList.add("hidden");
+    }
+  } catch (err) {
+    showNotif("Error: " + err.message);
+  }
+};
+
 // REGISTER
 if (location.href.includes("register")) {
   window.addEventListener("DOMContentLoaded", () => {
@@ -119,6 +137,10 @@ if (location.href.includes("general")) {
     const copyBtn = $("copyBtn");
     const offlineBtn = $("offlineBtn");
     const errorBtn = $("errorBtn");
+    const deleteBtn = $("deleteBtn");
+    const deleteModal = $("deleteModal");
+    const cancelDel = $("cancelDel");
+    const confirmDel = $("confirmDel");
     const modal = $("errorModal");
     const offlineModal = $("offlineModal");
     const closeOffline = $("closeOffline");
@@ -136,6 +158,13 @@ if (location.href.includes("general")) {
     const qrImg = $("qrImg");
     const medFlag = $("medFlag");
     const medWrap = $("medWrap");
+    const roleRads = document.querySelectorAll('.roleRad');
+    const updateMedVisibility = () => {
+      const sel = Array.from(roleRads).find(r => r.checked)?.value || 'general';
+      if (sel === 'sub') medWrap.classList.add('hidden');
+      else medWrap.classList.remove('hidden');
+    };
+    roleRads.forEach(r => r.addEventListener('change', updateMedVisibility));
     const errorText = $("errorText");
     const cancelError = $("cancelError");
     const sendError = $("sendError");
@@ -288,12 +317,11 @@ if (location.href.includes("general")) {
             tokenStep1.classList.remove("hidden");
             tokenStep2.classList.add("hidden");
             medFlag.checked = false;
-            medWrap.classList.remove("hidden");
+            updateMedVisibility();
           };
           cancelToken.onclick = () => tokenModal.classList.add("hidden");
           nextToken.onclick = async () => {
-            const roleSel = Array.from(document.querySelectorAll('.roleRad')).find(r=>r.checked).value;
-            if (roleSel === 'sub') medWrap.classList.add('hidden');
+            const roleSel = Array.from(roleRads).find(r => r.checked).value;
             const newToken = uuidv4();
             await setDoc(doc(db, 'registerTokens', newToken), {
               createdAt: serverTimestamp(),
@@ -321,9 +349,13 @@ if (location.href.includes("general")) {
           resetInact();
         };
 
+        deleteBtn.onclick = () => {
+          deleteModal.classList.remove('hidden');
+        };
+
         copyOffline.onclick = async () => {
           if (!offlinePin) return;
-          const link = `http://192.168.4.1/unlock?pin=${encodeURIComponent(offlinePin)}`;
+          const link = `http://192.168.4.1/?pin=${encodeURIComponent(offlinePin)}`;
           await navigator.clipboard.writeText(`${offlinePin} ${link}`);
           showNotif("Info copied");
         };
@@ -342,7 +374,7 @@ if (location.href.includes("general")) {
         });
         launchOffline.onclick = () => {
           const tok = offlineCodeInput.value.trim();
-          if (tok) window.open(`http://192.168.4.1/unlock?pin=${encodeURIComponent(tok)}`, "_blank");
+          if (tok) window.open(`http://192.168.4.1/?pin=${encodeURIComponent(tok)}`, "_blank");
           resetInact();
         };
 
@@ -353,7 +385,8 @@ if (location.href.includes("general")) {
         cancelError.onclick = () => modal.classList.add("hidden");
         sendError.onclick = async () => {
           const msg = errorText.value.trim();
-          if (!msg) return;
+          const ack = document.getElementById("errorAck").checked;
+          if (!msg || !ack) return;
           await addDoc(collection(db, "errors"), {
             message: msg,
             user: user.uid,
@@ -361,6 +394,27 @@ if (location.href.includes("general")) {
           });
           modal.classList.add("hidden");
           showNotif("Issue reported");
+        };
+
+        cancelDel.onclick = () => deleteModal.classList.add("hidden");
+        confirmDel.onclick = async () => {
+          confirmDel.disabled = true;
+          try {
+            await httpsCallable(functions, 'deleteAccount')();
+          } catch (e) {
+            try {
+              if (auth.currentUser) {
+                await deleteUser(auth.currentUser);
+                await deleteDoc(doc(db, 'users', auth.currentUser.uid));
+              }
+            } catch (err) {
+              showNotif('Error: ' + err.message);
+              confirmDel.disabled = false;
+              return;
+            }
+          }
+          showNotif('Account deleted');
+          setTimeout(() => location.href = 'index.html', 500);
         };
       }
     });
@@ -445,5 +499,6 @@ window.logout = async () => {
 };
 
 window.deleteAccount = () => {
-  showNotif("Account deletion coming soon");
+  const modal = document.getElementById('deleteModal');
+  if (modal) modal.classList.remove('hidden');
 };

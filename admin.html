@@ -17,7 +17,7 @@
       </div>
     </header>
 
-    <button onclick="generateToken()" class="w-full bg-green-600 p-2 rounded">Generate &amp; Copy Token</button>
+    <button onclick="generateToken()" class="w-full bg-green-600 p-2 rounded">Invite Users</button>
 
     <div class="grid gap-4 md:grid-cols-2">
       <div>
@@ -46,6 +46,16 @@
     <div id="userList" class="space-y-2"></div>
     <h2 class="text-xl mt-6">Error Reports</h2>
     <div id="errorList" class="space-y-2"></div>
+    <h2 class="text-xl mt-6">Kanban</h2>
+    <div id="kanbanBoard" class="grid grid-cols-3 gap-4">
+      <div><h3 class="text-lg">Todo</h3><div id="todoCol" class="space-y-2 min-h-32 p-2 bg-gray-800 rounded"></div></div>
+      <div><h3 class="text-lg">Doing</h3><div id="doingCol" class="space-y-2 min-h-32 p-2 bg-gray-800 rounded"></div></div>
+      <div><h3 class="text-lg">Done</h3><div id="doneCol" class="space-y-2 min-h-32 p-2 bg-gray-800 rounded"></div></div>
+    </div>
+    <div class="mt-2 flex gap-2">
+      <input id="newTask" class="flex-1 p-2 bg-gray-700 rounded" placeholder="New task" />
+      <button id="addTask" class="bg-blue-600 p-2 rounded">Add</button>
+    </div>
   </div>
 
   <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded hidden"></div>
@@ -57,7 +67,8 @@
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import {
       getFirestore, doc, setDoc, getDoc, updateDoc,
-      collection, getDocs, serverTimestamp, deleteDoc
+      collection, getDocs, serverTimestamp, deleteDoc,
+      addDoc, onSnapshot
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
     import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
     import { v4 as uuidv4 } from "https://jspm.dev/uuid";
@@ -187,7 +198,7 @@
         const row = document.createElement("div");
         row.className = "p-2 bg-gray-700 rounded flex justify-between items-center";
         row.innerHTML = `
-          <div>${u.name} → ${u.role}</div>
+          <div class="font-medium name">${u.name}</div>
           <div class="flex items-center gap-2">
             <select class="bg-gray-800 text-white rounded px-2 py-1">
               <option value="general">general</option>
@@ -207,7 +218,6 @@
         const medChk = row.querySelector(".medChk");
         const lockChk = row.querySelector(".lockChk");
         sel.value = u.role;
-        const label = row.querySelector("div");
         const roles = new Set(u.roles || []);
         if (roles.has("med")) medChk.checked = true;
         if (u.locked) lockChk.checked = true;
@@ -218,7 +228,6 @@
             roles: Array.from(roles),
             locked: lockChk.checked
           });
-          label.textContent = `${u.name} → ${sel.value}`;
           showNotif("User updated");
         };
         sel.onchange = updateUser;
@@ -247,6 +256,61 @@
         item.appendChild(del);
         $("errorList").appendChild(item);
       });
+
+      const colIds = { todo: 'todoCol', doing: 'doingCol', done: 'doneCol' };
+      const renderTask = tSnap => {
+        const t = tSnap.data();
+        const div = document.createElement('div');
+        div.className = 'p-2 bg-gray-700 rounded flex justify-between items-center';
+        div.setAttribute('draggable', 'true');
+        div.dataset.id = tSnap.id;
+        div.innerHTML = `<span class="taskText flex-1">${t.text}</span><button class="delTask text-red-400 ml-2">✖</button>`;
+        const span = div.querySelector('.taskText');
+        span.ondblclick = () => {
+          const inp = document.createElement('input');
+          inp.value = span.textContent;
+          inp.className = 'bg-gray-600 p-1 rounded w-full';
+          div.replaceChild(inp, span);
+          inp.focus();
+          const save = async () => {
+            const val = inp.value.trim();
+            div.replaceChild(span, inp);
+            if (val && val !== span.textContent) {
+              span.textContent = val;
+              await updateDoc(doc(db, 'kanban', tSnap.id), { text: val });
+            }
+          };
+          inp.onblur = save;
+          inp.onkeydown = e => e.key === 'Enter' && inp.blur();
+        };
+        div.querySelector('.delTask').onclick = async () => {
+          await deleteDoc(doc(db, 'kanban', tSnap.id));
+        };
+        div.addEventListener('dragstart', e => {
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', tSnap.id);
+        });
+        $(colIds[t.status] || 'todoCol').appendChild(div);
+      };
+      onSnapshot(collection(db, 'kanban'), snap => {
+        Object.values(colIds).forEach(id => $(id).innerHTML = '');
+        snap.forEach(renderTask);
+      });
+      Object.entries(colIds).forEach(([status, id]) => {
+        const col = $(id);
+        col.addEventListener('dragover', e => e.preventDefault());
+        col.addEventListener('drop', async e => {
+          e.preventDefault();
+          const taskId = e.dataTransfer.getData('text/plain');
+          if (taskId) await updateDoc(doc(db, 'kanban', taskId), { status });
+        });
+      });
+      $("addTask").onclick = async () => {
+        const txt = $("newTask").value.trim();
+        if (!txt) return;
+        await addDoc(collection(db, 'kanban'), { text: txt, status: 'todo', createdAt: serverTimestamp() });
+        $("newTask").value = '';
+      };
     });
   </script>
 </body>
