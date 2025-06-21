@@ -137,6 +137,7 @@ if (location.href.includes("general")) {
     const copyBtn = $("copyBtn");
     const offlineBtn = $("offlineBtn");
     const errorBtn = $("errorBtn");
+    const deleteBtn = $("deleteBtn");
     const deleteModal = $("deleteModal");
     const cancelDel = $("cancelDel");
     const confirmDel = $("confirmDel");
@@ -346,6 +347,10 @@ if (location.href.includes("general")) {
           offlineCodeInput.value = offlinePin;
           offlineModal.classList.remove("hidden");
           resetInact();
+        };
+
+        deleteBtn.onclick = () => {
+          deleteModal.classList.remove('hidden');
         };
 
         copyOffline.onclick = async () => {
