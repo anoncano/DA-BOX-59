@@ -1,63 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DaBox Login</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        html, body { height: 100%; }
-        body {
-            font-family: 'Inter', system-ui, sans-serif;
-            background-color: #030712;
-        }
-        .card {
-            background: linear-gradient(145deg, rgba(31, 41, 55, 0.4), rgba(17, 24, 39, 0.2));
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DaBox Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="favicon.ico" />
+  <style>#toast{transition:opacity .3s;} .hidden{opacity:0;} body{font-family:system-ui,sans-serif;}</style>
 </head>
-<body class="text-gray-200" id="login-page">
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4 sm:p-6">
+  <div id="authContainer" class="w-full max-w-xs sm:max-w-sm md:max-w-md bg-gray-800 p-4 sm:p-6 rounded shadow mx-auto space-y-4">
+    <h2 class="text-xl font-bold text-center">Welcome to DaBox</h2>
+    <input id="email" type="email" placeholder="Email" class="w-full p-2 bg-gray-700 rounded border border-gray-600" />
+    <input id="password" type="password" placeholder="Password" class="w-full p-2 bg-gray-700 rounded border border-gray-600" onkeydown="if(event.key==='Enter') login()" />
+    <button id="loginBtn" onclick="login()" class="w-full bg-blue-500 hover:bg-blue-600 p-2 rounded">Login</button>
+    <button id="resetBtn" onclick="resetPassword()" class="w-full bg-gray-700 p-2 rounded mt-2">Reset Password</button>
+    <p id="loading" class="text-sm text-blue-400 text-center hidden">Logging in...</p>
+    <p id="msg" class="text-sm text-red-400 text-center"></p>
+  </div>
 
-    <div class="min-h-full flex flex-col items-center justify-center p-4">
-        <div class="w-full max-w-md space-y-8">
-            <div>
-                <h1 class="text-center text-4xl font-bold text-white">DaBox</h1>
-                <p class="mt-2 text-center text-sm text-gray-400">Sign in to access your control panel</p>
-            </div>
-            <div class="card rounded-2xl p-8 space-y-6">
-                <div class="space-y-4">
-                    <input id="email" type="email" placeholder="Email Address" required class="w-full px-3 py-2 bg-gray-900/50 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
-                    <input id="password" type="password" placeholder="Password" required class="w-full px-3 py-2 bg-gray-900/50 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
-                </div>
-                <div id="msg" class="text-sm text-red-400 text-center min-h-[1.25rem]"></div>
-                <div>
-                    <button id="loginBtn" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-blue-500 transition">
-                        <span id="loginBtnText">Sign In</span>
-                        <svg id="loading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                    </button>
-                </div>
-                <div class="text-center">
-                    <button id="resetBtn" class="text-sm text-gray-400 hover:text-blue-400 transition">Forgot your password?</button>
-                </div>
-            </div>
-        </div>
+  <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded hidden"></div>
+
+  <div id="resetModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden">
+    <div class="bg-gray-800 p-4 rounded space-y-4 w-full max-w-xs text-center">
+      <p>If you don't see the reset email, please check your spam folder.</p>
+      <button id="resetClose" class="bg-blue-600 px-4 py-2 rounded w-full">OK</button>
     </div>
+  </div>
 
-    <!-- Modals and Toasts -->
-    <div id="toast" class="fixed bottom-6 right-6 bg-gray-800 border border-gray-700 text-white px-5 py-3 rounded-lg shadow-lg opacity-0 pointer-events-none transition-opacity duration-300"></div>
-    <div id="resetModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300 z-50">
-        <div class="card rounded-2xl p-8 space-y-4 w-full max-w-sm text-center">
-            <h3 class="text-lg font-semibold text-white">Check Your Email</h3>
-            <p class="text-gray-400">If an account exists for the email provided, a password reset link has been sent. Don't forget to check your spam folder.</p>
-            <button id="resetClose" class="w-full mt-2 bg-blue-600 hover:bg-blue-700 py-2 px-4 rounded-md transition">OK</button>
-        </div>
-    </div>
-
-    <script type="module" src="auth.js"></script>
+  <script type="module" src="auth.js"></script>
 </body>
 </html>
