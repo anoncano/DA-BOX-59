@@ -16,10 +16,11 @@
 #include <ArduinoOTA.h>
 #include <Update.h>
 
-#define WIFI_SSID "YOUR_WIFI_SSID"
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
-#define WIFI_SSID2 "YOUR_WIFI_SSID2"
-#define WIFI_PASSWORD2 "YOUR_WIFI_PASSWORD2"
+#define WIFI_SSID "NetComm 8929"
+#define WIFI_PASSWORD "yswazsmfva"
+#define WIFI_SSID2 "Belong403C90"
+#define WIFI_PASSWORD2 "Mitchell63"
+
 
 #define AP_SSID "da-box-59"
 #define AP_PASSWORD ""
