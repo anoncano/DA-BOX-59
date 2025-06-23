@@ -1,4 +1,4 @@
-# Everyday User Guide (Plain English)
+# Everyday User Guide 
 
 ## 🔓 Main Control Panel
 There's a big switch. It turns something on or off (locked or unlocked).
