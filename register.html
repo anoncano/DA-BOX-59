@@ -1,49 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DaBox Register</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        html, body { height: 100%; }
-        body {
-            font-family: 'Inter', system-ui, sans-serif;
-            background-color: #030712;
-        }
-        .card {
-            background: linear-gradient(145deg, rgba(31, 41, 55, 0.4), rgba(17, 24, 39, 0.2));
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DaBox Register</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>#toast{transition:opacity .3s;} .hidden{opacity:0;} body{font-family:system-ui,sans-serif;}</style>
 </head>
-<body class="text-gray-200" id="register-page">
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4 sm:p-6">
+  <div id="regContainer" class="w-full max-w-xs sm:max-w-sm md:max-w-md bg-gray-800 p-4 sm:p-6 rounded shadow mx-auto space-y-4">
+    <h2 class="text-xl font-bold text-center">Create Account</h2>
+    <input id="name" type="text" placeholder="Name" class="w-full p-2 bg-gray-700 rounded border border-gray-600" />
+    <input id="regEmail" type="email" placeholder="Email" class="w-full p-2 bg-gray-700 rounded border border-gray-600" />
+    <input id="regPassword" type="password" placeholder="Password" class="w-full p-2 bg-gray-700 rounded border border-gray-600" />
+    <button id="regBtn" class="w-full bg-green-600 hover:bg-green-700 p-2 rounded">Sign Up</button>
+    <p id="regMsg" class="text-sm text-red-400 text-center"></p>
+  </div>
 
-    <div class="min-h-full flex flex-col items-center justify-center p-4">
-        <div class="w-full max-w-md space-y-8">
-            <div>
-                <h1 class="text-center text-4xl font-bold text-white">Create Your Account</h1>
-                <p class="mt-2 text-center text-sm text-gray-400">Complete the form below to register.</p>
-            </div>
-            <div class="card rounded-2xl p-8 space-y-6">
-                <div class="space-y-4">
-                    <input id="name" type="text" placeholder="Full Name" required class="w-full px-3 py-2 bg-gray-900/50 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
-                    <input id="regEmail" type="email" placeholder="Email Address" required class="w-full px-3 py-2 bg-gray-900/50 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
-                    <input id="regPassword" type="password" placeholder="Create Password" required class="w-full px-3 py-2 bg-gray-900/50 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
-                </div>
-                 <div id="regMsg" class="text-sm text-red-400 text-center min-h-[1.25rem]"></div>
-                <div>
-                    <button id="regBtn" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-green-500 transition">
-                        Sign Up
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div id="toast" class="fixed bottom-6 right-6 bg-gray-800 border border-gray-700 text-white px-5 py-3 rounded-lg shadow-lg opacity-0 pointer-events-none transition-opacity duration-300"></div>
+  <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded hidden"></div>
 
-    <script type="module" src="auth.js"></script>
+  <script type="module" src="auth.js"></script>
 </body>
 </html>
