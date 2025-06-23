@@ -192,6 +192,7 @@ if (location.href.includes("general")) {
     const qrImg = $("qrImg");
     const medFlag = $("medFlag");
     const medWrap = $("medWrap");
+    const logoutFab = $("logout-fab");
     const roleRads = document.querySelectorAll('.roleRad');
     const updateMedVisibility = () => {
       const sel = Array.from(roleRads).find(r => r.checked)?.value || 'general';
@@ -199,6 +200,7 @@ if (location.href.includes("general")) {
       else medWrap.classList.remove('hidden');
     };
     roleRads.forEach(r => r.addEventListener('change', updateMedVisibility));
+    if (logoutFab) logoutFab.addEventListener('click', logout);
     const errorText = $("errorText");
     const cancelError = $("cancelError");
     const sendError = $("sendError");
@@ -459,6 +461,8 @@ if (location.href.includes("general")) {
 // ADMIN PANEL
 if (location.href.includes("admin")) {
   window.addEventListener("DOMContentLoaded", () => {
+    const logoutBtn = $("logout-btn");
+    if (logoutBtn) logoutBtn.addEventListener("click", logout);
     onAuthStateChanged(auth, async (user) => {
       if (!user) return location.href = "index.html";
       const snap = await getDoc(doc(db, "users", user.uid));
