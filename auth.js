@@ -42,6 +42,24 @@ const showNotif = (msg) => {
 };
 window.showNotif = showNotif;
 
+const openModal = (el) => {
+  const back = $("modal-backdrop");
+  if (back) back.classList.remove("opacity-0", "pointer-events-none");
+  if (el) {
+    el.classList.remove("opacity-0", "pointer-events-none");
+    el.classList.add("open");
+  }
+};
+
+const closeModal = (el) => {
+  const back = $("modal-backdrop");
+  if (back) back.classList.add("opacity-0", "pointer-events-none");
+  if (el) {
+    el.classList.add("opacity-0", "pointer-events-none");
+    el.classList.remove("open");
+  }
+};
+
 // LOGIN PAGE SETUP
 if (document.body && document.body.id === "login-page") {
   window.addEventListener("DOMContentLoaded", () => {
@@ -95,9 +113,9 @@ window.resetPassword = async () => {
     showNotif("Reset email sent");
     const m = $("resetModal");
     if (m) {
-      m.classList.remove("hidden");
+      openModal(m);
       const c = $("resetClose");
-      if (c) c.onclick = () => m.classList.add("hidden");
+      if (c) c.onclick = () => closeModal(m);
     }
   } catch (err) {
     showNotif("Error: " + err.message);
@@ -261,7 +279,7 @@ if (location.href.includes("general")) {
             if (!offlineShown) {
               offlineShown = true;
               offlineCodeInput.value = offlinePin;
-              offlineModal.classList.remove("hidden");
+              openModal(offlineModal);
             }
           }
         }, 5000);
@@ -329,13 +347,13 @@ if (location.href.includes("general")) {
         if (role === "sub") {
           copyBtn.classList.remove("hidden");
           copyBtn.onclick = () => {
-            tokenModal.classList.remove("hidden");
+            openModal(tokenModal);
             tokenStep1.classList.remove("hidden");
             tokenStep2.classList.add("hidden");
             medFlag.checked = false;
             updateMedVisibility();
           };
-          cancelToken.onclick = () => tokenModal.classList.add("hidden");
+          cancelToken.onclick = () => closeModal(tokenModal);
           nextToken.onclick = async () => {
             const roleSel = Array.from(roleRads).find(r => r.checked).value;
             const newToken = uuidv4();
@@ -355,18 +373,18 @@ if (location.href.includes("general")) {
             await navigator.clipboard.writeText(tokenLink.value);
             showNotif('Link copied');
           };
-          doneToken.onclick = () => tokenModal.classList.add('hidden');
+          doneToken.onclick = () => closeModal(tokenModal);
         }
 
         offlineBtn.onclick = () => {
           if (!offlinePin) return showNotif("No PIN available yet");
           offlineCodeInput.value = offlinePin;
-          offlineModal.classList.remove("hidden");
+          openModal(offlineModal);
           resetInact();
         };
 
         deleteBtn.addEventListener('click', () => {
-          deleteModal.classList.remove('hidden');
+          openModal(deleteModal);
         });
 
         copyOffline.onclick = async () => {
@@ -377,13 +395,13 @@ if (location.href.includes("general")) {
         };
 
         closeOffline.onclick = () => {
-          offlineModal.classList.add("hidden");
+          closeModal(offlineModal);
           offlineShown = false;
           resetInact();
         };
         offlineModal.addEventListener("click", e => {
           if (e.target === offlineModal) {
-            offlineModal.classList.add("hidden");
+            closeModal(offlineModal);
             offlineShown = false;
             resetInact();
           }
@@ -395,10 +413,10 @@ if (location.href.includes("general")) {
         };
 
         errorBtn.onclick = () => {
-          modal.classList.remove("hidden");
+          openModal(modal);
           errorText.value = "";
         };
-        cancelError.onclick = () => modal.classList.add("hidden");
+        cancelError.onclick = () => closeModal(modal);
         sendError.onclick = async () => {
           const msg = errorText.value.trim();
           const ack = document.getElementById("errorAck").checked;
@@ -408,11 +426,11 @@ if (location.href.includes("general")) {
             user: user.uid,
             createdAt: serverTimestamp()
           });
-          modal.classList.add("hidden");
+          closeModal(modal);
           showNotif("Issue reported");
         };
 
-        cancelDel.onclick = () => deleteModal.classList.add("hidden");
+        cancelDel.onclick = () => closeModal(deleteModal);
         confirmDel.onclick = async () => {
           confirmDel.disabled = true;
           try {
@@ -430,6 +448,7 @@ if (location.href.includes("general")) {
             }
           }
           showNotif('Account deleted');
+          closeModal(deleteModal);
           setTimeout(() => location.href = 'index.html', 500);
         };
       }
@@ -516,5 +535,5 @@ window.logout = async () => {
 
 window.deleteAccount = () => {
   const modal = document.getElementById('deleteModal');
-  if (modal) modal.classList.remove('hidden');
+  if (modal) openModal(modal);
 };
