@@ -464,6 +464,32 @@ if (location.href.includes("admin")) {
       const snap = await getDoc(doc(db, "users", user.uid));
       if (snap.data()?.role !== "admin") location.href = "general.html";
 
+      const statusDot = $("status-dot");
+      const statusText = $("status-text");
+      const pinGenEl = $("pinGen");
+      const pinSubEl = $("pinSub");
+      const pinAdmEl = $("pinAdm");
+      let espIp = "";
+
+      onValue(ref(rtdb, "heartbeat"), s => {
+        const v = s.val();
+        espIp = v?.ip || "";
+        if (statusDot) {
+          statusDot.classList.toggle("bg-green-400", !!v);
+          statusDot.classList.toggle("bg-red-400", !v);
+        }
+        if (statusText) statusText.textContent = v ? "Device Online" : "Device Offline";
+      });
+      onValue(ref(rtdb, "offlinePinGeneral"), s => {
+        if (pinGenEl) pinGenEl.textContent = s.val() || "----";
+      });
+      onValue(ref(rtdb, "offlinePinSub"), s => {
+        if (pinSubEl) pinSubEl.textContent = s.val() || "----";
+      });
+      onValue(ref(rtdb, "offlinePinAdmin"), s => {
+        if (pinAdmEl) pinAdmEl.textContent = s.val() || "----";
+      });
+
       const conf = await getDoc(doc(db, "config", "inactivity"));
       if (conf.exists()) $("inactivityTimeout").value = conf.data().timeout || 3000;
 
