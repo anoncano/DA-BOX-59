@@ -42,6 +42,22 @@ const showNotif = (msg) => {
 };
 window.showNotif = showNotif;
 
+// LOGIN PAGE SETUP
+if (document.body && document.body.id === "login-page") {
+  window.addEventListener("DOMContentLoaded", () => {
+    const loginBtn = $("loginBtn");
+    const resetBtn = $("resetBtn");
+    const passInput = $("password");
+    if (loginBtn) loginBtn.addEventListener("click", login);
+    if (resetBtn) resetBtn.addEventListener("click", resetPassword);
+    if (passInput) {
+      passInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") login();
+      });
+    }
+  });
+}
+
 // LOGIN
 window.login = async () => {
   const btn = $("loginBtn");
